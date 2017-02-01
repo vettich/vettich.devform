@@ -1,0 +1,97 @@
+<?
+namespace vettich\devform\types;
+
+/**
+* @author Oleg Lenshin (Vettich)
+*/
+class select extends _type
+{
+	public $content = '<select name="{name}" id="{id}" {params}>{options}</select>';
+	public $options = array();
+	public $option_group_template = '<optgroup label="{label}">{options}</optgroup>';
+	public $option_template = '<option {selected} value="{value}" {option_params}>{name}</option>';
+	public $textOption = false;
+
+	public function __construct($id, $args)
+	{
+		parent::__construct($id, $args);
+
+		if(isset($args['textOption'])) {
+			$this->textOption = $args['textOption'];
+		}
+		if(isset($args['options'])) {
+			$this->options = $args['options'];
+		}
+		if(isset($args['option_template'])) {
+			$this->option_template = $args['option_template'];
+		}
+	}
+
+	public function renderTemplate($template='', $replaces=array())
+	{
+		if(isset($replaces['{value}'])) {
+			$value = $replaces['{value}'];
+		} else {
+			$value = $this->getValue($this->data);
+		}
+		if(empty($value)) {
+			$value = $this->default_value;
+		}
+
+		$html_options = self::renderOptions($this->options, $value);
+		if($this->textOption) {
+			$repls = array(
+				'{selected}' => '',
+				'{name}' => self::mess('#VDF_TEXT_OPTION#'),
+				'{value}' => '',
+				'{option_params}' => 'data-text-option="true"',
+			);
+			$html_options .= str_replace(
+				array_keys($repls),
+				array_values($repls),
+				$this->option_template
+			);
+			$this->params['class'] .= ' js-text-option';
+		}
+		$replaces['{options}'] = $html_options;
+
+		return parent::renderTemplate($template, $replaces);
+	}
+
+	public function renderOptions($options, $value)
+	{
+		$html_options = '';
+		foreach ($options as $key => $opt) {
+			if(is_array($opt)) {
+				$repls = array(
+					'{label}' => self::mess($opt['label'] ?: $opt['name']),
+					'{options}' => self::renderOptions($opt['options'] ?: $opt['items']),
+				);
+				$html_options .= str_replace(
+					array_keys($repls),
+					array_values($repls),
+					$this->option_group_template
+				);
+				continue;
+			}
+			$repls = array(
+				'{selected}' => ($value == $key) ? 'selected' : '',
+				'{name}' => self::mess($opt),
+				'{value}' => $key,
+				'{option_params}' => '',
+			);
+			$html_options .= str_replace(
+				array_keys($repls),
+				array_values($repls),
+				$this->option_template
+			);
+		}
+		return $html_options;
+	}
+
+	public function renderView($value='')
+	{
+		$value = $this->options[$value];
+		return parent::renderView($value);
+	}
+}
