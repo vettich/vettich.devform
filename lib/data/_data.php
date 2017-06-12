@@ -4,24 +4,21 @@ namespace vettich\devform\data;
 /**
 * @author Oleg Lenshin (Vettich)
 */
-class _data extends \vettich\devform\Object
+class _data extends \vettich\devform\Module
 {
 	public $datas = null;
 	
 	protected $paramPrefix = '';
 	protected $trimPrefix = true;
-	protected $beforeSave = null;
-	protected $afterSave = null;
 
 	function __construct($args=array())
 	{
 		if(isset($args['paramPrefix'])) $this->paramPrefix = $args['paramPrefix'];
+		if(isset($args['prefix'])) $this->paramPrefix = $args['prefix'];
 		if(isset($args['trimPrefix'])) $this->trimPrefix = $args['trimPrefix'];
-		if(isset($args['beforeSave'])) $this->beforeSave = $args['beforeSave'];
-		if(isset($args['afterSave'])) $this->afterSave = $args['afterSave'];
 	}
 
-	public function save($arValues) {}
+	public function save(&$arValues=array()) {}
 	public function get($valueName, $default=null) {}
 
 	public function delete($name, $value) 
@@ -97,11 +94,13 @@ class _data extends \vettich\devform\Object
 			$datas = $this->datas;
 		}
 
-		foreach($datas as $data)
-		{
-			$r = $data->get($valueName);
-			if($r !== null)
-				return $r;
+		if(is_array($datas)) {
+			foreach($datas as $data)
+			{
+				$r = $data->get($valueName);
+				if($r !== null)
+					return $r;
+			}
 		}
 		return null;
 	}
@@ -124,8 +123,19 @@ class _data extends \vettich\devform\Object
 
 	protected function trim($paramName)
 	{
-		return str_replace($this->paramPrefix, '', $paramName);
+		if($this->trimPrefix
+			&& !empty($this->paramPrefix)
+			&& strpos($paramName, $this->paramPrefix) === 0) {
+			return substr($paramName, strlen($this->paramPrefix));
+		}
+		return $paramName;
 	}
 
-
+	public function prefix($value=null)
+	{
+		if($value == null) {
+			return $this->paramPrefix;
+		}
+		$this->paramPrefix = $value;
+	}
 }

@@ -18,4 +18,6 @@ $MESS['VDF_LIST_DELETE_TITLE'] = 'Удалить запись';
 $MESS['VDF_LIST_DELETE_CONFIRM'] = 'Вы действительно хотите удалить элемент #NAME#?';
 $MESS['VDF_LIST_DELETE_CONFIRM2'] = 'Вы действительно хотите удалить данную запись?';
 
+$MESS['VDF_DELETE'] = 'Удалить';
 $MESS['VDF_TEXT_OPTION'] = 'Другое';
+$MESS['VDF_HEADING_HELP_TITLE'] = 'Развернуть/Свернуть';

@@ -21,7 +21,7 @@ use CAdminContextMenu;
 * @param object this
 * @return boolean
 */
-class AdminForm extends Object
+class AdminForm extends Module
 {
 	public $id = 'ID'; // unique
 	public $pageTitle = false;
@@ -36,23 +36,26 @@ class AdminForm extends Object
 				{content}
 			</form>
 		</div>';
+	public $js = '';
+	public $css = '';
 
-	private static $tabClass = 'vettich\devform\Tab';
-	protected $onHandlers = array();
 	public $errorMessage = '';
 	public $errorTemplate = '<div class="adm-info-message">{errors}</div>';
 
 	function __construct($id, $args = array())
 	{
+		parent::__construct($args);
 		$this->id = $id;
 		if(isset($args['enable'])) $this->enable = $args['enable'];
+		if(isset($args['js'])) $this->js = $args['js'];
+		if(isset($args['css'])) $this->css = $args['css'];
 		if(isset($args['pageTitle'])) $this->pageTitle = self::mess($args['pageTitle']);
 		if(isset($args['tabs'])) $this->tabs = $this->initTabs($args['tabs']);
 		if(isset($args['buttons'])) $this->buttons = _type::createTypes($args['buttons']);
 		if(isset($args['headerButtons'])) $this->headerButtons = _type::createTypes($args['headerButtons']);
 		if(isset($args['data'])) $this->datas = _data::createDatas($args['data']);
-		$this->onHandlers = self::getOnHandler($args);
 
+		$this->onHandler('tabsCreate', $this, $this->tabs);
 		$this->save($args);
 	}
 
@@ -62,41 +65,22 @@ class AdminForm extends Object
 			return array();
 		}
 
+		$tabClass = 'vettich\devform\Tab';
 		$result = array();
 		foreach ($tabs as $tab) {
-			if(is_object($tab)) {
-				$result[] = $tab;
-			} elseif(is_array($tab)) {
-				$tabClass = self::$tabClass;
-				if(isset($tab['class'])) {
-					$tabClass = $tab['class'];
-					unset($tab['class']);
-				}
-				$result[] = new $tabClass($tab);
-			} else {
-				throw new TabException("The parameter must be an object or an array");
+			if($res = $tabClass::createTab($tab)) {
+				$result[] = $res;
 			}
 		}
-		return $result;
-	}
 
-	public static function initData($data)
-	{
-		if(is_object($data)) {
-			return $data;
-		} elseif(is_string($data)) {
-		} elseif(is_array($data)) {
-			$result = array();
-			foreach($data as $d) {
-				$result[] = self::initData($d);
-			}
-			return $result;
-		}
-		return null;
+		return $result;
 	}
 
 	public function save($args)
 	{
+		if(!empty($_POST)) {
+			$_POST = self::convertEncodingToCurrent($_POST);
+		}
 		if($_REQUEST['ajax'] == 'Y' 
 			&& (!isset($args['save_ajax']) or $args['save_ajax'] != true)) {
 			return;
@@ -110,13 +94,13 @@ class AdminForm extends Object
 			/** 
 			* on beforeSave callback
 			*/
-			$beforeSave = self::onHandler($this->onHandlers, 'beforeSave', $arValues, $args, $this);
+			$beforeSave = $this->onHandler('beforeSave', $arValues, $args, $this);
 			if($beforeSave !== false && !isset($beforeSave['error'])) {
 				$this->datas->saveValues($arValues);
 				/** 
 				* on afterSave callback
 				*/
-				self::onHandler($this->onHandlers, 'afterSave', $arValues, $args, $this);
+				$this->onHandler('afterSave', $arValues, $args, $this);
 				if((isset($_POST['save']) or isset($_POST['_save'])) && !empty($_GET['back_url'])) {
 					LocalRedirect($_GET['back_url']);
 					exit;
@@ -180,10 +164,12 @@ class AdminForm extends Object
 				);
 			}
 		}
-		foreach($this->headerButtons as $id=>$button) {
-			$arResult[$id] = array(
-				'HTML' => $button->render(),
-			);
+		if(is_array($this->headerButtons)) {
+			foreach($this->headerButtons as $id=>$button) {
+				$arResult[$id] = array(
+					'HTML' => $button->render(),
+				);
+			}
 		}
 		return $arResult;
 	}
@@ -222,7 +208,7 @@ class AdminForm extends Object
 
 		$context = new CAdminContextMenu($this->getContextMenu());
 		$context->Show();
-		if($_REQUEST['ajax'] == 'Y') {
+		if($_REQUEST['ajax'] == 'Y' && $_REQUEST['ajax_formid'] == $this->id) {
 			$GLOBALS['APPLICATION']->RestartBuffer();
 		}
 		$this->renderErrors($this->errorMessage);
@@ -248,7 +234,12 @@ class AdminForm extends Object
 		echo bitrix_sessid_post();
 		$tabControl->End();
 
-		?><script>vettich_devform_formid = <?=json_encode($this->id)?></script><?
+		if(!empty($this->js)) {
+			echo '<script>'.$this->js.'</script>';
+		}
+		if(!empty($this->css)) {
+			echo '<style>'.$this->css.'</style>';
+		}
 
 		$ob_content = ob_get_contents();
 		ob_end_clean();

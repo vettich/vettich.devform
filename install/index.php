@@ -46,34 +46,29 @@ class vettich_devform extends CModule{
 	}
 
 	function DoUninstall(){
-		global $DOCUMENT_ROOT, $APPLICATION, $step;
-		// $step = IntVal($step);
-		// if($step<2)
-		// {
-		// 	$APPLICATION->IncludeAdminFile(GetMessage('VPOSTING_UNINSTALL_TITLE'), $this->MODULE_ROOT_DIR.'/install/unstep1.php');
-		// }
-		// elseif($step==2)
-		// {
-			if($this->UnInstallDB(array(
-					'savedata' => $_REQUEST['savedata'],
-				))
-				&& $this->UnInstallFiles()
-				&& $this->UnInstallEvents())
-			{
-				UnRegisterModule($this->MODULE_ID);
-				return true;
-			}
-			return false;
-		// }
+		if($this->UnInstallDB(array(
+				'savedata' => $_REQUEST['savedata'],
+			))
+			&& $this->UnInstallFiles()
+			&& $this->UnInstallEvents())
+		{
+			UnRegisterModule($this->MODULE_ID);
+			return true;
+		}
+		return false;
 	}
 
 	function InstallDB($arModuleParams = array())
 	{
+		include $this->MODULE_ROOT_DIR.'/lib/db/option.php';
+		vettich\devform\db\optionTable::createTable();
 		return true;
 	}
 
 	function UnInstallDB($arParams = array())
 	{
+		include $this->MODULE_ROOT_DIR.'/lib/db/option.php';
+		vettich\devform\db\optionTable::dropTable();
 		return true;
 	}
 
@@ -95,7 +90,13 @@ class vettich_devform extends CModule{
 
 	function UnInstallFiles()
 	{
+		DeleteDirFiles($this->MODULE_ROOT_DIR."/install/bitrix/admin", $_SERVER["DOCUMENT_ROOT"]."/bitrix/admin");
+		DeleteDirFiles($this->MODULE_ROOT_DIR."/install/bitrix/js/vettich.devform", $_SERVER["DOCUMENT_ROOT"]."/bitrix/js/vettich.devform");
+		DeleteDirFiles($this->MODULE_ROOT_DIR."/install/bitrix/css/vettich.devform", $_SERVER["DOCUMENT_ROOT"]."/bitrix/css/vettich.devform");
+		DeleteDirFiles($this->MODULE_ROOT_DIR."/install/bitrix/images/vettich.devform", $_SERVER["DOCUMENT_ROOT"]."/bitrix/images/vettich.devform");
+		DeleteDirFiles($this->MODULE_ROOT_DIR."/install/bitrix/js", $_SERVER["DOCUMENT_ROOT"]."/bitrix/js");
+		DeleteDirFiles($this->MODULE_ROOT_DIR."/install/bitrix/css", $_SERVER["DOCUMENT_ROOT"]."/bitrix/css");
+		DeleteDirFiles($this->MODULE_ROOT_DIR."/install/bitrix/images", $_SERVER["DOCUMENT_ROOT"]."/bitrix/images");
 		return true;
 	}
 }
-?>

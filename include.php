@@ -1,9 +1,14 @@
 <?
 IncludeModuleLangFile(__FILE__);
 
-if(!function_exists('ddebug')) {
-	function ddebug($mess, $filename=null)
+if(!function_exists('devdebug')) {
+	function devdebug($mess, $filename=null)
 	{
+		if(is_array($mess)) {
+			array_walk_recursive($mess, function(&$mess) {
+				$mess = htmlspecialchars($mess);
+			});
+		}
 		if($filename !== null) {
 			if(!is_dir($debugPath = __DIR__.'/debug/'))
 				mkdir($debugPath, 0775);

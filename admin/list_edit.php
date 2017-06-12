@@ -1,41 +1,29 @@
 <?
-ini_set('display_errors', true);
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_before.php");
 require($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/main/include/prolog_admin_after.php');
 
-CModule::IncludeModule('vettich.autoposting');
 CModule::IncludeModule('vettich.devform');
 IncludeModuleLangFile(__FILE__);
-$start = microtime(true);
 
-($gg = new vettich\devform\AdminForm('devform', array(
-	'pageTitle' => 'Page title test',
+(new vettich\devform\AdminForm('devform', array(
+	'pageTitle' => 'Edit option',
 	'tabs' => array(
 		new vettich\devform\Tab(array(
-			'name' => 'Примеры опций',
-			'title' => 'Примеры',
+			'name' => 'Option',
+			'title' => '',
 			'params' => array(
-				'ID' => 'hidden',
-				'NAME' => 'text:#NAME#:default',
-				'IS_ENABLE' => 'checkbox:DB Is enable:N',
+				'_ID' => 'hidden',
+				'_MODULE_ID' => 'text:MODULE_ID',
+				'_NAME' => 'text:NAME',
+				'_VALUE' => 'text:VALUE',
 			),
 		)),
 	),
 	'buttons' => array(
-		'save' => 'buttons\saveSubmit:#SAVE#',
-		'apply' => 'buttons\submit:#APPLY#',
+		'_save' => 'buttons\saveSubmit:#VDF_SAVE#',
+		'_apply' => 'buttons\submit:#VDF_APPLY#',
 	),
-	'headerButtons' => array(
-		'link1' => 'buttons\link:Link button:https\://ya.ru',
-	),
-	'data' => array(
-		'class' => 'orm',
-		'dbClass' => 'vettich\devform\db',
-		// 'paramPrefix' => 'DB_',
-		'trimPrefix' => true,
-	),
+	'data' => 'orm:dbClass=vettich\devform\db\option:paramPrefix=_',
 )))->render();
-
-echo 'Script time: '.(microtime(true) - $start);
 
 require_once($_SERVER["DOCUMENT_ROOT"].BX_ROOT."/modules/main/include/epilog_admin.php");

@@ -18,8 +18,8 @@ class orm extends _data
 	{
 		if(isset($args['filter'])) {
 			$this->filter = $args['filter'];
-		} else {
-			$this->filter = array('ID' => $_GET['ID'] ?: null);
+		} elseif(!empty($_GET['ID'])) {
+			$this->filter = array('ID' => $_GET['ID']);
 		}
 
 		if(isset($args['dbClass'])) {
@@ -56,8 +56,8 @@ class orm extends _data
 			if($this->trimPrefix) {
 				$key = $this->trim($key);
 			}
-			if($this->$arValues[$key] != $value) {
-				$this->arValues[$key] = $value;
+			/*if($this->arValues[$key] != $value)*/ {
+				self::valueTo($this->arValues, $key, $value);
 				$isChange = true;
 			}
 		}
@@ -79,15 +79,30 @@ class orm extends _data
 
 		$key = 'ID';
 		if($this->trimPrefix && !empty($this->paramPrefix)) {
-			$key = $this->paramPrefix.'_ID';
+			$key = $this->paramPrefix.'ID';
 		}
 		$arValues[$key] = $this->arValues['ID'] = $result->getId();
 		return $arValues[$key];
 	}
 
 	public function getList($params=array()) {
+		if(isset($params['select'])) {
+			foreach ($params['select'] as $key => $value) {
+				if(false !== ($pos = strpos($value, '['))) {
+					$params['select'][$key] = substr($value, 0, $pos);
+				}
+			}
+		}
 		$cl = $this->dbClass;
-		return $cl::getList($params);
+		if(is_array($params['filter'])) {
+			$params['filter'] = array_merge((array)$this->filter, (array)$params['filter']);
+		} else {
+			$params['filter'] = $this->filter;
+		}
+		try {
+			return $cl::getList($params);
+		} catch(\Exception $e) {}
+		return null;
 	}
 
 	public function get($name, $default=null)
@@ -118,8 +133,12 @@ class orm extends _data
 			$name = $this->trim($name);
 		}
 
-		if($this->arValues && $this->arValues[$name])
-			return $this->arValues[$name] ?: $default;
+		if($this->arValues) {
+			// if($name == 'CONDITIONS') {
+			// devdebug($name);
+			// }
+			return self::valueFrom($this->arValues, $name, $default);
+		}
 
 		if(!$this->filter['ID']) {
 			return $default;

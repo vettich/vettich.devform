@@ -61,11 +61,14 @@ class select extends _type
 	public function renderOptions($options, $value)
 	{
 		$html_options = '';
+		if(!is_array($options)) {
+			return '';
+		}
 		foreach ($options as $key => $opt) {
 			if(is_array($opt)) {
 				$repls = array(
 					'{label}' => self::mess($opt['label'] ?: $opt['name']),
-					'{options}' => self::renderOptions($opt['options'] ?: $opt['items']),
+					'{options}' => self::renderOptions($opt['options'] ?: $opt['items'], $value),
 				);
 				$html_options .= str_replace(
 					array_keys($repls),
@@ -91,7 +94,7 @@ class select extends _type
 
 	public function renderView($value='')
 	{
-		$value = $this->options[$value];
+		$value = self::mess($this->options[$value]);
 		return parent::renderView($value);
 	}
 }

@@ -24,7 +24,7 @@ use vettich\devform\data\orm;
 * @var array $dontEdit
 * @var array $onHandlers
 */
-class AdminList extends Object
+class AdminList extends Module
 {
 	protected $pageTitle = '';
 	protected $sTableID = '';
@@ -35,7 +35,8 @@ class AdminList extends Object
 	protected $params = array();
 	protected $hiddenParams = array();
 	protected $dontEdit = array('ID');
-	protected $onHandlers = array();
+	protected $linkEditInsert = array();
+	protected $editLinkParams = array();
 
 	/**
 	 * @param string $pageTitle
@@ -45,16 +46,10 @@ class AdminList extends Object
 	 */
 	function __construct($pageTitle, $sTableID, $args)
 	{
+		parent::__construct($args);
 		$this->pageTitle = self::mess($pageTitle);
 		$this->sTableID = $sTableID;
 		$this->params = _type::createTypes($args['params']);
-
-		if(!isset($args['buttons']['add'])) {
-			$args['buttons'] = array_merge(array(
-				'add' => 'buttons\newLink:#VDF_ADD#:'.str_replace(array('=', '[', ']'), array('\=', '\[', '\]'), self::getLinkEdit()),
-			), (array)$args['buttons']);
-		}
-		$this->buttons = _type::createTypes($args['buttons']);
 
 		$this->setSort($args);
 
@@ -65,11 +60,19 @@ class AdminList extends Object
 		}
 
 		if(isset($args['navLabel'])) $this->navLabel = $args['navLabel'];
+		if(isset($args['linkEditInsert'])) $this->linkEditInsert = $args['linkEditInsert'];
 		if(isset($args['hiddenParams'])) $this->hiddenParams = $args['hiddenParams'];
 		if(isset($args['dontEdit'])) $this->dontEdit = $args['dontEdit'];
+		if(isset($args['editLinkParams'])) $this->editLinkParams = $args['editLinkParams'];
 
-		$this->onHandlers = self::getOnHandler($args);
 		$this->list = new CAdminList($this->sTableID, $this->sort);
+
+		if(!isset($args['buttons']['add'])) {
+			$args['buttons'] = array_merge(array(
+				'add' => 'buttons\newLink:#VDF_ADD#:'.str_replace(array('=', '[', ']'), array('\=', '\[', '\]'), $this->getLinkEdit()),
+			), (array)$args['buttons']);
+		}
+		$this->buttons = _type::createTypes($args['buttons']);
 
 		if(!isset($args['isFilter']) or $args['isFilter']) {
 			$filters = array(
@@ -83,8 +86,9 @@ class AdminList extends Object
 		$this->doEditAction();
 	}
 
-	public static function getLinkEdit($params=array())
+	public function getLinkEdit($params=array())
 	{
+		$params = array_merge($this->editLinkParams, $params);
 		$p = $_GET;
 		unset($p['mode']);
 		$p = http_build_query($p);
@@ -116,14 +120,14 @@ class AdminList extends Object
 				switch($_REQUEST['action'])
 				{
 					case 'delete':
-						if(false !== self::onHandler($this->onHandlers, 'beforeGroupDelete', $ID, $this)) {
+						if(false !== $this->onHandler('beforeGroupDelete', $this, $ID)) {
 							$this->datas->delete('ID', $ID);
-							self::onHandler($this->onHandlers, 'afterGroupDelete', $ID, $this);
+							$this->onHandler('afterGroupDelete', $this, $ID);
 						}
 						break;
 				}
 			}
-			self::onHandler($this->onHandlers, 'doGroupActions', $arID, $_REQUEST['action'], $this);
+			$this->onHandler('doGroupActions', $arID, $_REQUEST['action'], $this);
 		}
 	}
 
@@ -194,6 +198,9 @@ class AdminList extends Object
 		if(!empty($arOrder)) $params['order'] = $arOrder;
 		if(!empty($arFilter)) $params['filter'] = $arFilter;
 		if(!empty($arSelect)) $params['select'] = $arSelect;
+		if(!in_array('ID', $params['select'])) {
+			$params['select'][] = 'ID';
+		}
 		if(!empty($this->datas->datas)) {
 			foreach($this->datas->datas as $data) {
 				if(method_exists($data, 'getList')) {
@@ -238,18 +245,17 @@ class AdminList extends Object
 				'ICON' => 'edit',
 				'DEFAULT' => true,
 				'TEXT' => GetMessage('VDF_LIST_EDIT'),
-				'ACTION' => $this->list->ActionRedirect(self::getLinkEdit(array('ID' => $row->arRes['ID']))),
+				'ACTION' => $this->list->ActionRedirect($this->getLinkEdit(array('ID' => $row->arRes['ID']))),
 			),
 			'delete' => array(
 				'ICON' => 'delete',
-				'DEFAULT' => true,
 				'TEXT' => GetMessage('VDF_LIST_DELETE'),
 				'ACTION' => 'if(confirm("'
 					.GetMessage('VDF_LIST_DELETE_CONFIRM', array('#NAME#' => $row->arRes['NAME'])).'")) '
-					.$this->list->ActionDoGroup($row->arRes['ID'], 'delete'),
+					.$this->list->ActionDoGroup($row->arRes['ID'], 'delete', http_build_query($_GET)),
 			),
 		);
-		$arActions = array_merge($arActions, (array)self::onHandler($this->onHandlers, 'actionsBuild', $arActions));
+		$arActions = array_merge($arActions, (array)$this->onHandler('actionsBuild', $this, $row, $arActions));
 		return $arActions;
 	}
 
@@ -325,26 +331,24 @@ class AdminList extends Object
 	* show page on display
 	* @global $APPLICATION
 	*/
-	function render()
+	public function render()
 	{
-		\CJSCore::Init(array('ajax'));
-		\CJSCore::Init(array('jquery'));
-		$GLOBALS['APPLICATION']->AddHeadScript('/bitrix/js/vettich.devform/script.js');
-		$GLOBALS['APPLICATION']->SetAdditionalCSS('/bitrix/css/vettich.devform/style.css');
-
-		$this->list->addHeaders($this->getHeaders());
+		$this->renderBegin();
 		$select = $this->getSelectedFields();
-
 		$dataSource = $this->getDataSource(array(), $this->getFilter(), $select);
 		$data = new CAdminResult($dataSource, $this->sTableID);
 		$data->NavStart();
 		$this->list->NavText($data->GetNavPrint($this->navLabel));
 		while ($arRes = $data->NavNext(false)) {
 			$row = $this->list->AddRow($arRes['ID'], $arRes);
+			$this->onHandler('renderRow', $this, $row);
 			foreach ($select as $fieldId) {
 				$param = $this->params[$fieldId];
 				if ($param) {
-					$view = $param->renderView($arRes[$param->id]);
+					if(in_array($param->id, $this->linkEditInsert)) {
+						$param->href = $this->getLinkEdit(array('ID' => $arRes['ID']));
+					}
+					$view = $param->renderView(self::valueFrom($arRes, $param->id));
 					$row->AddViewField($param->id, $view);
 
 					if(!in_array($param->id, $this->dontEdit)) {
@@ -359,9 +363,22 @@ class AdminList extends Object
 			}
 			$arActions = $this->getActions($row);
 			$row->AddActions($arActions);
-			self::onHandler($this->onHandlers, 'afterRow', $row);
+			$this->onHandler('afterRow', $this, $row);
 		}
+		$this->renderEnd();
+	}
 
+	private function renderBegin()
+	{
+		\CJSCore::Init(array('ajax'));
+		\CJSCore::Init(array('jquery'));
+		$GLOBALS['APPLICATION']->AddHeadScript('/bitrix/js/vettich.devform/script.js');
+		$GLOBALS['APPLICATION']->SetAdditionalCSS('/bitrix/css/vettich.devform/style.css');
+		$this->list->addHeaders($this->getHeaders());
+	}
+
+	private function renderEnd()
+	{
 		$this->list->AddFooter($this->getFooter());
 		$this->list->AddAdminContextMenu($this->getContextMenu());
 		$this->list->AddGroupActionTable(array('delete'=>true));

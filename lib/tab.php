@@ -12,15 +12,16 @@ use vettich\devform\types\_type;
 * @var array $params
 * @var boolean $enable
 */
-class Tab extends Object
+class Tab extends Module
 {
 	public $name = 'Tab';
 	public $title = '';
 	public $params = null;
 	public $enable = true;
-	
+
 	function __construct($args = array())
 	{
+		parent::__construct($args);
 		if(isset($args['name'])) $this->name = self::mess($args['name']);
 		if(isset($args['title'])) $this->title = self::mess($args['title']);
 		if(isset($args['params'])) $this->params = $args['params'];
@@ -30,5 +31,23 @@ class Tab extends Object
 	public function render($data=null)
 	{
 		echo _type::renderTypes($this->params, $data);
+	}
+
+	public static function createTab($params)
+	{
+		$result = false;
+		if(is_object($params)) {
+			$result = $params;
+		} elseif(is_array($params)) {
+			$tabClass = get_class();
+			if(isset($params['class'])) {
+				$tabClass = $params['class'];
+				unset($params['class']);
+			}
+			$result = new $tabClass($params);
+		} else {
+			throw new exceptions\TabException("The parameter must be an object or an array");
+		}
+		return $result;
 	}
 }

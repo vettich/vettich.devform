@@ -3,11 +3,12 @@ namespace vettich\devform\types;
 
 use vettich\devform\actions\_action;
 use vettich\devform\exceptions\TypeException;
+use vettich\devform\data\_data;
 
 /**
 * 
 */
-abstract class _type extends \vettich\devform\Object
+abstract class _type extends \vettich\devform\Module
 {
 	public $id = '';
 	public $filterMask = '=';
@@ -16,9 +17,15 @@ abstract class _type extends \vettich\devform\Object
 	public $name = '';
 	public $value = '';
 	public $default_value = '';
-	public $template = '<tr id="{id}-wrap"><td width="40%"><label for="{id}">{title}</label></td><td width="60%">{content}</td></tr>';
+	public $template = '<tr id="{id}-wrap"><td width="40%"><label for="{id}">{title}{help}</label></td><td width="60%">{content}</td></tr>';
 	public $templateView = '{value}';
 	public $content = '{value}';
+	public $templateHelp = '
+		<div class="voptions-help">
+			<div class="voptions-help-btn"></div>
+			<div class="voptions-help-text">{help_text}</div>
+		</div>';
+	public $help = '';
 	public $params = array();
 	public $sort = 500;
 	public $is_saved = true;
@@ -27,6 +34,7 @@ abstract class _type extends \vettich\devform\Object
 
 	function __construct($id, $args = array())
 	{
+		parent::__construct($args);
 		$this->id = $id;
 
 		if(!isset($args['title'])) $args['title'] = $id;
@@ -39,10 +47,11 @@ abstract class _type extends \vettich\devform\Object
 		if(isset($args['template'])) $this->template = $args['template'];
 		if(isset($args['params'])) $this->params = array_merge($this->params, $args['params']);
 		if(isset($args['sort'])) $this->sort = $args['sort'];
+		if(isset($args['help'])) $this->help = $args['help'];
 		if(isset($args['actions'])) $this->actions = _action::createActions($this, $args['actions']);
 
 		if(isset($args['refresh']) && ($args['refresh'] or $args['refresh'] == 'Y')) {
-			$tmp = 'vettich_devform_refresh();';
+			$tmp = 'Vettich.Devform.Refresh(this);';
 			if(isset($this->params['onclick'])) {
 				$tmp .= $this->params['onclick'];
 			}
@@ -51,10 +60,13 @@ abstract class _type extends \vettich\devform\Object
 		if(empty($this->name)) {
 			$this->name = $id;
 		}
+		if(isset($this->params['placeholder'])) {
+			$this->params['placeholder'] = self::mess($this->params['placeholder']);
+		}
 
 		if(empty($this->value)) {
-			if(isset($_POST[$this->name])) {
-				$this->value = $_POST[$this->name];
+			if(($t = $this->getValueFromPost()) !== null) {
+				$this->value = $t;
 			}
 		}
 	}
@@ -65,7 +77,7 @@ abstract class _type extends \vettich\devform\Object
 			if(is_object($data)) {
 				$this->value = $data->getValue($this->name);
 			} else {
-				$this->value = \vettich\devform\data\_data::getValue($data, $this->name);
+				$this->value = _data::getValue($data, $this->name);
 			}
 		}
 		return $this->value;
@@ -87,11 +99,13 @@ abstract class _type extends \vettich\devform\Object
 
 	public function renderView($value='')
 	{
+		$this->onHandler('renderView', $this, $value);
 		return $this->renderTemplate($this->templateView, array('{value}' => $value));
 	}
 
 	public function renderTemplate($template='', $replaces=array())
 	{
+		$this->onHandler('renderTemplate', $this, $template, $replaces);
 		if(empty($template)) {
 			$template = $this->template;
 		}
@@ -107,14 +121,20 @@ abstract class _type extends \vettich\devform\Object
 
 		$replaces_def = array(
 			'{content}' => $this->content,
-			'{value}' => $value,
-			'{default_value}' => $this->default_value,
-			'{id}' => $this->id,
-			'{name}' => $this->name,
 			// '{title}' => $this->title . (isset($this->params['required']) ? ' <font color="red">*</font>' : ''),
-			'{title}' => $this->renderTitle($this->title, $this->params),
 			'{params}' => $this->renderParams(),
+			'{help}' => $this->renderHelp(),
+			'{title}' => $this->renderTitle($this->title, $this->params),
+			'{default_value}' => $this->default_value,
+			'{value}' => $value,
+			'{name}' => $this->name,
+			'{id}' => str_replace(array('][', ']', '['), array('-', '', '-'), $this->id),
 		);
+		foreach ($replaces_def as $key => $value) {
+			if(isset($replaces[$key])) {
+				unset($replaces_def[$key]);
+			}
+		}
 		$replaces = array_merge($replaces_def, $replaces);
 		return str_replace(
 			array_keys($replaces),
@@ -158,17 +178,37 @@ abstract class _type extends \vettich\devform\Object
 		return implode('', $result);
 	}
 
+	public static function renderType($id, $param, $data=null)
+	{
+		if($param = self::createType($id, $param)) {
+			return $param->render($data);
+		}
+	}
+
+	public function renderHelp()
+	{
+		if(empty($this->help)) {
+			return '';
+		}
+		return str_replace(
+			'{help_text}', 
+			self::mess($this->help), 
+			$this->templateHelp
+		);
+	}
+
 	/**
 	* create types
 	* @param array $params
-	* @return array Types
+	* @param string $prefix
+	* @return array _type objects
 	*/
-	public static function createTypes($params)
+	public static function createTypes($params, $prefix='')
 	{
 		$result = array();
 		foreach($params as $id => $param)
 		{
-			if($param = self::createType($id, $param))
+			if($param = self::createType($prefix.$id, $param))
 				$result[$param->id] = $param;
 		}
 		return $result;
@@ -188,7 +228,7 @@ abstract class _type extends \vettich\devform\Object
 			return $param;
 		elseif(is_array($param))
 		{
-			return self::createObject($param['type'], $id, $param);
+			return self::_createObject($param['type'], $id, $param);
 		}
 		elseif(is_string($param))
 		{
@@ -204,14 +244,14 @@ abstract class _type extends \vettich\devform\Object
 			// 	'default_value' => $arParam[2],
 			// 	'value' => $arParam[3],
 			// );
-			return self::createObject($arParam['type'], $id, $arParam);
+			return self::_createObject($arParam['type'], $id, $arParam);
 		} else {
 			throw new TypeException("The type must be object, array or string.");
 		}
 		return null;
 	}
 
-	public static function createObject($name, $id, $params)
+	public static function _createObject($name, $id, $params)
 	{
 		$name = str_replace(array('.', '/'), '\\', $name);
 		if(class_exists($cl_name = 'vettich\devform\types\\'.$name)
@@ -235,14 +275,29 @@ abstract class _type extends \vettich\devform\Object
 
 	public function getValueFromPost()
 	{
-		return $_POST[$this->name];
+		// return self::valueFrom($_POST, $this->name);
+		return self::post($this->name);
+		// return $_POST[$this->name];
+	}
+
+	public static function post($name)
+	{
+		if(($pos = strpos($name, '[')) !== false) {
+			$_name = substr($name, 0, $pos);
+			$_postname = substr($name, $pos);
+			$_postname = str_replace(array('[', ']'), array('["', '"]'), $_postname);
+			eval('$ret = isset($_POST["'.$_name.'"]'.$_postname.') ? $_POST["'.$_name.'"]'.$_postname.' : null;');
+			return $ret;
+		} else {
+			return isset($_POST[$name]) ? $_POST[$name] : null;
+		}
 	}
 
 	public function runActions()
 	{
-		foreach($this->actions as $action)
-		{
-			$action->run();
-		}
+		// foreach($this->actions as $action)
+		// {
+		// 	$action->run();
+		// }
 	}
 }

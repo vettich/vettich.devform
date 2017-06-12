@@ -36,14 +36,14 @@ class COption extends _data
 		));
 	}
 
-	public function save($arValues)
+	public function save(&$arValues=array())
 	{
-		call_user_func($this->beforeSave);
+		$this->onHandler('beforeSave', $this, $arValues);
 		foreach($arValues as $key => $value)
 		{
 			self::set($key, $value);
 		}
-		call_user_func($this->afterSave);
+		$this->onHandler('afterSave', $this, $arValues);
 	}
 
 	public function get($name, $default=null)
@@ -62,6 +62,9 @@ class COption extends _data
 		}
 		if($this->trimPrefix) {
 			$name = $this->trim($name);
+		}
+		if(is_array($value) or is_object($value)) {
+			$value = serialize($value);
 		}
 
 		\COption::SetOptionString($this->module_id, $name, $value);

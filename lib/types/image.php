@@ -71,15 +71,15 @@ class image extends _type
 	{
 // ddebug($_REQUEST);
 		if($_SERVER['REQUEST_METHOD'] == 'POST') {
-		    $arIMAGE = $_REQUEST[$this->name];
+		    $arIMAGE = self::post($this->name);
 		    // if(intval($arIMAGE)) {
 		    // 	$arIMAGE = CFile::GetFileArray($arIMAGE);
 		    // }
 		    if(stripos($arIMAGE['tmp_name'],$_SERVER['DOCUMENT_ROOT']) === false) {
 		    	$arIMAGE['tmp_name'] = $_SERVER['DOCUMENT_ROOT'].$arIMAGE['tmp_name'];
 		    }
-		    $arIMAGE['old_file'] = $_REQUEST[$this->name.'_old'];
-		    $arIMAGE['del'] = $_REQUEST[$this->name.'_del'];
+		    $arIMAGE['old_file'] = self::post($this->name.'_old');
+		    $arIMAGE['del'] = self::post($this->name.'_del');
 		    $arIMAGE['MODULE_ID'] = $this->module_id;
 		    if (!empty($arIMAGE['name']) || !empty($arIMAGE['del'])) {
 		        $fid = CFile::SaveFile($arIMAGE, $this->module_id);

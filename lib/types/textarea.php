@@ -25,11 +25,11 @@ class textarea extends _type
 
 	public function renderTemplate($template='', $replaces=array())
 	{
-		$replaces['{items}'] = self::parseItems($this->items);
+		$replaces['{items}'] = self::renderItems($this->items);
 		return parent::renderTemplate($template, $replaces);
 	}
 
-	public static function parseItems($items)
+	public static function renderItems($items)
 	{
 		$res = '';
 		foreach ($items as $key => $value) {
@@ -38,7 +38,7 @@ class textarea extends _type
 					continue;
 				}
 				$res .= "<span data-value=\"$key\">$value[label]</span>";
-				$res .= self::parseItems($value['items']);
+				$res .= self::renderItems($value['items']);
 				continue;
 			}
 			$res .= "<div data-value=\"$key\">$value</div>";

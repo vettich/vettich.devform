@@ -7,7 +7,7 @@ use vettich\devform\types\type;
 /**
 * @author Oleg Lenshin (Vettich)
 */
-abstract class _action extends vettich\devform\Object
+abstract class _action extends vettich\devform\Module
 {
 	public $conditions = array();
 	public $params = array();
