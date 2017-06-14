@@ -127,12 +127,12 @@ input[type="submit"].vettich-btn-save:hover {
 
 .textarea_select .items {
 	display: none;
-	position: absolute;
+	position: fixed;
 	background-color: #e0e8ea;
 	padding: .4em 0.1em;
 	margin-top: 3px;
 	overflow: auto;
-	max-height: 26em;
+	max-height: 86%;
 	z-index: 1000;
 }
 
@@ -170,6 +170,17 @@ div.adm-btn:active {
 	padding: 0 1em !important;
 }
 
+body.shadow:after {
+	content: "";
+	position: fixed;
+	top:0;
+	left:0;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(0, 0, 0, 0.1);
+	z-index: 100;
+}
+
 
 .voptions-help{
 	position: relative;
@@ -188,10 +199,10 @@ div.adm-btn:active {
 	text-align: left;
 	visibility: hidden;
 	position: absolute;
-	bottom: 30px;
-	left: 50%;
+	bottom: 20px;
+	/*left: 50%;*/
 	z-index: 999;
-	width: 230px;
+	min-width: 230px;
 	margin-left: -127px;
 	padding: 10px;
 	/*border-color: #A2A6AD #989CA1 #8E9398;*/
@@ -210,7 +221,7 @@ div.adm-btn:active {
 }
 
 /*.voptions-help .voptions-help-text:before,*/
-.voptions-help .voptions-help-text:after
+/*.voptions-help .voptions-help-text:after
 {
 	content: "";
 	position: absolute;
@@ -222,7 +233,7 @@ div.adm-btn:active {
 	border-left: 8px solid transparent;
 	border-right: 8px solid transparent;
 	border-bottom: 0;  
-}
+}*/
 
 /*.voptions-help .voptions-help-text:before
 {

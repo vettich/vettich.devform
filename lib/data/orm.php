@@ -137,6 +137,7 @@ class orm extends _data
 			// if($name == 'CONDITIONS') {
 			// devdebug($name);
 			// }
+			// devdebug($this->arValues, 'post');
 			return self::valueFrom($this->arValues, $name, $default);
 		}
 

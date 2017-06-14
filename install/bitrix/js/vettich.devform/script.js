@@ -14,11 +14,10 @@ $(document).ready(function(){
 			return;
 		}
 		if ($(event.target).closest('.textarea_select .items').length) return;
-		$('.textarea_select .items').css('display', 'none');
+		Vettich.Devform.TextareaChooseHide('.textarea_select .items')
 		event.stopPropagation();
 	});
 	Vettich.Devform.TextareaChooseInit();
-	$('.textarea_select .items > div').click(Vettich.Devform.PasteToTextarea);
 
 	$('input[type="submit"]').click(function(e){
 		BX.adminPanel.closeWait(this);
@@ -104,16 +103,34 @@ Vettich.Devform.TextareaChooseShow = function () {
 Vettich.Devform.TextareaChooseBlock = false;
 Vettich.Devform.TextareaChooseInit = function () {
 	$('.textarea_select .adm-btn').click(function(){
-		var $this = $(this);
-		a = $this;
+		$this = $(this);
 		var items;
 		if((items = $this.parent().find('.items')).css('display') == 'none') {
+			var bottom = $this.offset().top + $this.outerHeight();
+			var top = $this.offset().top - $(window).scrollTop();
 			items.css('display', 'block');
+			top -= items.height() - 24;
+			if(top < 10) {
+				top = 10;
+			} else if(top + items.outerHeight() > document.body.clientHeight) {
+				top = document.body.clientHeight - items.outerHeight() - 6;
+			}
+			items.css({
+				left: ($this.offset().left - items.outerWidth() - 5) + 'px',
+				top: top,
+			});
+			$('body').addClass('shadow').css('overflow-y', 'hidden');
 		} else {
-			items.css('display', 'none');
+			Vettich.Devform.TextareaChooseHide(items);
 		}
 		Vettich.Devform.TextareaChooseBlock = true;
 	});
+	$('.textarea_select .items > div').click(Vettich.Devform.PasteToTextarea);
+}
+
+Vettich.Devform.TextareaChooseHide = function (selector) {
+	$(selector).css('display', 'none');
+	$('body').removeClass('shadow').css('overflow-y', 'auto');
 }
 
 Vettich.Devform.PasteToTextarea = function() {
