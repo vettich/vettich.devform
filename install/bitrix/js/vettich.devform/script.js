@@ -57,9 +57,9 @@ Vettich.Devform.Refresh = function () {
 
 			// if(!_dom || !_dom.getElementById("tabControl_layout"))
 			// 	return;
-
+			eval(formid + ' = null;');
 			$('#'+ formid + '_layout').html(data);
-			eval(formid + '.PreInit()');
+			// eval(formid + '.PreInit()');
 			$('.js-vform').show();
 			Vettich.Devform.HeadingsInit();
 			Vettich.Devform.TextareaChooseShow();

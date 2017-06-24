@@ -154,9 +154,11 @@ class AdminList extends Module
 					$sOrder = 'ASC';
 				}
 			} else {
-				$sBy = key($this->params);
+				$sBy = 'ID';
 				$sOrder = 'ASC';
 			}
+			$this->sortBy = $sBy;
+			$this->sortOrder = $sOrder;
 			$this->sort = new CAdminSorting($this->sTableID, $sBy, $sOrder);
 		}
 	}
@@ -169,7 +171,7 @@ class AdminList extends Module
 			$arHeaders[] = array(
 				'id' => $param->id,
 				'content' => $param->title,
-				// 'sort' => $param->info['sort'],
+				'sort' => (strpos($id, '[') === false ? $param->id : false),
 				// 'align' => $param->info['align'],
 				'default' => !$this->isHiddenParam($param->id),
 			);
@@ -335,7 +337,7 @@ class AdminList extends Module
 	{
 		$this->renderBegin();
 		$select = $this->getSelectedFields();
-		$dataSource = $this->getDataSource(array(), $this->getFilter(), $select);
+		$dataSource = $this->getDataSource($this->getOrder(), $this->getFilter(), $select);
 		$data = new CAdminResult($dataSource, $this->sTableID);
 		$data->NavStart();
 		$this->list->NavText($data->GetNavPrint($this->navLabel));
@@ -352,10 +354,17 @@ class AdminList extends Module
 					$row->AddViewField($param->id, $view);
 
 					if(!in_array($param->id, $this->dontEdit)) {
+						if(($pos = strpos($param->id, '[')) !== false) {
+							$prekey = substr($param->id, 0, $pos);
+							$postkey = substr($param->id, $pos);
+							$name = "FIELDS[{$arRes[ID]}][$prekey]$postkey";
+						} else {
+							$name = "FIELDS[{$arRes[ID]}][{$param->id}]";
+						}
 						$edit = $param->renderTemplate('{content}', array(
-							'{id}' => "FIELDS-{$arRes[ID]}-{$param->id}",
-							'{value}' => $arRes[$param->id],
-							'{name}' => "FIELDS[{$arRes[ID]}][{$param->id}]",
+							'{id}' => 'FIELDS-'.$arRes['ID'].'-'.str_replace(array('][', ']', '['), array('-', '', '-'), $param->id),
+							'{value}' => self::valueFrom($arRes, $param->id),
+							'{name}' => $name,
 						));
 						$row->AddEditField($param->id, $edit);
 					}

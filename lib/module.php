@@ -55,23 +55,17 @@ class Module
 		$len = strlen($text);
 		$start = -1;
 		$search = array();
-		for($i=0; $i < $len; ++$i)
-		{
-			if($text[$i] == '#')
-			{
-				if($start >= 0)
-				{
-					$search[] = substr($text, $start, $i + 1);
+		for($i=0; $i < $len; ++$i) {
+			if($text[$i] == '#') {
+				if($start >= 0) {
+					$search[] = substr($text, $start, $i - $start + 1);
 					$start = -1;
-				}
-				else
-				{
+				} else {
 					$start = $i;
 				}
 			}
 		}
-		foreach($search as $macros)
-		{
+		foreach($search as $macros) {
 			$mess = substr($macros, 1, -1);
 			$mess = GetMessage($mess);
 			if(!empty($mess)) {

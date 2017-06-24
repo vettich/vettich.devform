@@ -70,6 +70,9 @@ class select extends _type
 					'{label}' => self::mess($opt['label'] ?: $opt['name']),
 					'{options}' => self::renderOptions($opt['options'] ?: $opt['items'], $value),
 				);
+				if(empty($repls['{options}'])) {
+					continue;
+				}
 				$html_options .= str_replace(
 					array_keys($repls),
 					array_values($repls),

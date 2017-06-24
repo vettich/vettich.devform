@@ -118,6 +118,9 @@ abstract class _type extends \vettich\devform\Module
 		if(empty($value)) {
 			$value = $this->default_value;
 		}
+		if(is_string($value)) {
+			$value = self::mess($value);
+		}
 
 		$replaces_def = array(
 			'{content}' => $this->content,
