@@ -2,8 +2,16 @@
 IncludeModuleLangFile(__FILE__);
 
 if(!function_exists('devdebug')) {
-	function devdebug($mess, $filename=null)
+	function devdebug($mess, $filename=null, $once=false)
 	{
+		static $ar = array();
+		if($once) {
+			if(in_array($once, $ar)) {
+				return;
+			} else {
+				$ar[] = $once;
+			}
+		}
 		if(is_array($mess)) {
 			array_walk_recursive($mess, function(&$mess) {
 				$mess = htmlspecialchars($mess);

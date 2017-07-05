@@ -303,7 +303,7 @@ class Module
 		return new \CURLFile($fn);
 	}
 
-	public static function curlPost($url, $data)
+	public static function curlPost($url, $data, $on=null)
 	{
 		$result = false;
 		if(function_exists('curl_init') && $curl = curl_init())
@@ -315,13 +315,14 @@ class Module
 			curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
 			curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
 			curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
+			call_user_func_array($on, array(&$curl, $url, $data));
 			$result = curl_exec($curl);
 			curl_close($curl);
 		}
 		return $result;
 	}
 
-	public static function curlGet($url)
+	public static function curlGet($url, $on=null)
 	{
 		$result = false;
 		if(function_exists('curl_init') && $curl = curl_init())
@@ -331,6 +332,7 @@ class Module
 			curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
 			curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
 			curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
+			call_user_func_array($on, array(&$curl, $url));
 			$result = curl_exec($curl);
 			curl_close($curl);
 		}
@@ -345,5 +347,28 @@ class Module
 	public static function SetOptionString($name, $val)
 	{
 		\COption::SetOptionString(static::MODULE_ID, $name, $val);
+	}
+
+	public static function substr($str, $start, $length=false, $encoding='UTF-8', $wordwrap=true, $postfix='...')
+	{
+		$orig_len = strlen($str);
+		if($orig_len <= $length) {
+			return $str;
+		}
+		$postfix_len = strlen($postfix);
+		if($length===false) {
+			$length = $orig_len;
+		}
+		if($postfix && $length>$postfix_len) {
+			$length -= $postfix_len;
+		}
+		$res = mb_substr($str, $start, $length, $encoding);
+		if($wordwrap) {
+			$res = mb_substr($res, 0, mb_strripos($res, ' ', 0, $encoding), $encoding);
+		}
+		if($postfix && $length>$postfix_len && strlen($res) < $orig_len) {
+			$res .= $postfix;
+		}
+		return $res;
 	}
 }

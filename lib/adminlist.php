@@ -56,7 +56,7 @@ class AdminList extends Module
 		if(isset($args['data'])) {
 			$this->datas = _data::createDatas($args['data']);
 		} elseif(isset($args['dbClass'])) {
-			$this->datas = _data::createDatas(new orm(array('dbClass' => $args['dbClass'])));
+			$this->datas = _data::createDatas(new orm(array('dbClass' => $args['dbClass'], 'filter' => array())));
 		}
 
 		if(isset($args['navLabel'])) $this->navLabel = $args['navLabel'];
@@ -147,9 +147,9 @@ class AdminList extends Module
 			$this->sort = false;
 		} else {
 			if(isset($args['sortDefault'])) {
-				$sBy = key($this->sortDefault);
-				$sOrder = current($this->sortDefault);
-				if($sBy == 0) {
+				$sBy = key($args['sortDefault']);
+				$sOrder = current($args['sortDefault']);
+				if(!$sBy) {
 					$sBy = $sOrder;
 					$sOrder = 'ASC';
 				}
