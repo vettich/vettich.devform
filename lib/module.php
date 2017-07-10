@@ -233,14 +233,13 @@ class Module
 	* @param mixed $arg1...$arg7
 	* @return mixed
 	*/
-	public static function onHandlerStatic($handlers, $name, &$arg1=null, &$arg2=null, &$arg3=null, &$arg4=null, &$arg5=null, &$arg6=null, ...$arg7)
+	public static function onHandlerStatic($handlers, $name, &$arg1=null, &$arg2=null, &$arg3=null, &$arg4=null, &$arg5=null, &$arg6=null, &$arg7=null)
 	{
 		if(!isset($handlers[$name])) {
 			return null;
 		}
 
-		$args = array(&$arg1, &$arg2, &$arg3, &$arg4, &$arg5, &$arg6);
-		$args = array_merge($args, $arg7);
+		$args = array(&$arg1, &$arg2, &$arg3, &$arg4, &$arg5, &$arg6, &$arg7);
 		$len = count($args);
 		for ($i=count($args)-1; $i >= 0; $i--) { 
 			if($args[$i] === null) {
@@ -252,15 +251,17 @@ class Module
 		return call_user_func_array($handlers[$name], $args);
 	}
 
-	public function onHandler($name, &$arg1=null, &$arg2=null, &$arg3=null, &$arg4=null, &$arg5=null, &$arg6=null, ...$arg7)
+	/**
+	* non-static
+	*/
+	public function onHandler($name, &$arg1=null, &$arg2=null, &$arg3=null, &$arg4=null, &$arg5=null, &$arg6=null, &$arg7=null)
 	{
 		if(empty($this->_handlers[$name])) {
 			return null;
 		}
-		$args = array(&$arg1, &$arg2, &$arg3, &$arg4, &$arg5, &$arg6);
-		$args = array_merge($args, $arg7);
+		$args = array(&$arg1, &$arg2, &$arg3, &$arg4, &$arg5, &$arg6, &$arg7);
 		$len = count($args);
-		for ($i=count($args)-1; $i >= 0; $i--) { 
+		for ($i=count($args)-1; $i >= 0; $i--) {
 			if($args[$i] === null) {
 				unset($args[$i]);
 			} else {

@@ -104,21 +104,20 @@ class AdminList extends Module
 
 	function doGroupActions()
 	{
-		if(($arID = $this->list->GroupAction()))
-		{
-			if($_REQUEST['action_target']=='selected')
-			{
-				if(method_exists($post['option'], 'GetIDs'))
-					$arID = $post['option']::GetIDs();
+		if(($arID = $this->list->GroupAction())) {
+			if($_REQUEST['action_target']=='selected') {
+				$arID = array();
+				$rs = $this->getDataSource(array(), array(), array('ID'));
+				while($ar = $rs->fetch()) {
+					$arID[] = $ar['ID'];
+				}
 			}
-
-			foreach($arID as $ID)
-			{
+			foreach($arID as $ID) {
 				$ID = IntVal($ID);
-				if($ID <= 0)
+				if($ID <= 0) {
 					continue;
-				switch($_REQUEST['action'])
-				{
+				}
+				switch($_REQUEST['action']) {
 					case 'delete':
 						if(false !== $this->onHandler('beforeGroupDelete', $this, $ID)) {
 							$this->datas->delete('ID', $ID);
@@ -166,8 +165,7 @@ class AdminList extends Module
 	function getHeaders()
 	{
 		$arHeaders = array();
-		foreach ($this->params as $id => $param)
-		{
+		foreach ($this->params as $id => $param) {
 			$arHeaders[] = array(
 				'id' => $param->id,
 				'content' => $param->title,
@@ -182,13 +180,12 @@ class AdminList extends Module
 	function getSelectedFields()
 	{
 		$arSelectedFields = $this->list->GetVisibleHeaderColumns();
-		if (!is_array($arSelectedFields) || empty($arSelectedFields))
-		{
+		if (!is_array($arSelectedFields) || empty($arSelectedFields)) {
 			$arSelectedFields = array();
-			foreach ($this->params as $id => $param)
-			{
-				if ($this->isHiddenParam($id))
+			foreach ($this->params as $id => $param) {
+				if ($this->isHiddenParam($id)) {
 					$arSelectedFields[] = $id;
+				}
 			}
 		}
 		return $arSelectedFields;
@@ -287,15 +284,13 @@ class AdminList extends Module
 		);
 		$listFilter = array();
 		$filterRows = array();
-		foreach ($this->params as $param)
-		{
+		foreach ($this->params as $param) {
 			$listFilter[$param->id] = $param->title;
 			$findFilter['reference'][] = $param->title;
 			$findFilter['reference_id'][] = 'find_'.$param->id;
 		}
 
-		if (!empty($listFilter))
-		{
+		if (!empty($listFilter)) {
 			$filter = new CAdminFilter($this->sTableID.'_filter', $listFilter);
 			?>
 			<form name="find_form" method="get" action="<? echo $APPLICATION->GetCurPage(); ?>">
@@ -310,8 +305,7 @@ class AdminList extends Module
 					</tr>
 				<? endif; ?>
 				<?
-				foreach ($this->params as $param)
-				{
+				foreach ($this->params as $param) {
 					?><tr>
 						<td><? echo $param->title ?></td>
 						<td><? echo $param->renderTemplate('{content}', array('{name}' => 'find_'.$param->id)) ?></td>
