@@ -248,6 +248,9 @@ tr.hidden {
 tr.heading {
 	cursor: pointer;
 }
+tr.heading:hover td {
+	background-color: #e0eaec;
+}
 
 tr.heading.hidden {
 	display: table-row;
@@ -255,4 +258,7 @@ tr.heading.hidden {
 
 tr.heading.hidden td {
 	background-color: #d2dcde;
+}
+tr.heading.hidden:hover td {
+	background-color: #d3dee1;
 }

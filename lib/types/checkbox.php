@@ -1,6 +1,8 @@
 <?
 namespace vettich\devform\types;
 
+use vettich\devform\data\_data;
+
 /**
 * @author Oleg Lenshin (Vettich)
 */
@@ -29,6 +31,18 @@ class checkbox extends _type
 			}
 		}
 		parent::__construct($id, $args);
+	}
+
+	public function getValue($data=null)
+	{
+		if(!$this->value) {
+			if(is_object($data)) {
+				$this->value = $data->getValue($this->name);
+			} else {
+				$this->value = _data::getValue($data, $this->name);
+			}
+		}
+		return $this->value;
 	}
 
 	public function renderTemplate($template='', $replaces=array())
@@ -71,7 +85,6 @@ class checkbox extends _type
 			$replaces['{id}'] = $this->id;
 			$replaces['{name}'] = $this->name;
 		}
-
 		return parent::renderTemplate($template, $replaces);
 	}
 

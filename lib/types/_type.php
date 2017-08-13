@@ -15,7 +15,7 @@ abstract class _type extends \vettich\devform\Module
 	public $title = '';
 	public $titleOrigin = '';
 	public $name = '';
-	public $value = '';
+	public $value = null;
 	public $default_value = '';
 	public $template = '<tr id="{id}-wrap"><td width="40%"><label for="{id}">{title}{help}</label></td><td width="60%">{content}</td></tr>';
 	public $templateView = '{value}';
@@ -73,7 +73,7 @@ abstract class _type extends \vettich\devform\Module
 
 	public function getValue($data=null)
 	{
-		if(empty($this->value)) {
+		if($this->value === null) {
 			if(is_object($data)) {
 				$this->value = $data->getValue($this->name);
 			} else {
@@ -91,9 +91,7 @@ abstract class _type extends \vettich\devform\Module
 	public function render($data=null)
 	{
 		$this->data = $data;
-
 		$this->runActions();
-
 		return $this->renderTemplate();
 	}
 
@@ -176,7 +174,6 @@ abstract class _type extends \vettich\devform\Module
 				$result[$param->sort.($sort++)] = $param->render($data);
 			}
 		}
-
 		ksort($result);
 		return implode('', $result);
 	}
@@ -227,14 +224,15 @@ abstract class _type extends \vettich\devform\Module
 		if(empty($param)) {
 			return null;
 		}
-		if(is_object($param))
+		if(is_object($param)) {
+			// if($param->id == $param->name) {
+			// 	$param->name = $id;
+			// }
+			// $param->id = $id;
 			return $param;
-		elseif(is_array($param))
-		{
+		} elseif(is_array($param)) {
 			return self::_createObject($param['type'], $id, $param);
-		}
-		elseif(is_string($param))
-		{
+		} elseif(is_string($param)) {
 			// $arParam = explode(':', $param);
 			$arParam = self::explode(':', $param);
 			self::changeKey(0, 'type', $arParam);
@@ -266,10 +264,8 @@ abstract class _type extends \vettich\devform\Module
 	public static function getValuesFromPost($types)
 	{
 		$result = array();
-		foreach($types as $id => $param)
-		{
-			if(($param = self::createType($id, $param)) && $param->is_saved)
-			{
+		foreach($types as $id => $param) {
+			if(($param = self::createType($id, $param)) && $param->is_saved) {
 				$result[$param->name] = $param->getValueFromPost();
 			}
 		}

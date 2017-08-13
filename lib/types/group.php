@@ -135,10 +135,8 @@ class group extends _type
 			if(!isset($param[$attr])) {
 				$param[$attr] = $value;
 			}
-		} elseif(is_object($param[$attr])) {
-			if(isset($param->$attr) and empty($param->$attr)) {
-				$param->$attr = $value;
-			}
+		} elseif(is_object($param)) {
+			$param->$attr = $value;
 		}
 		return $param;
 	}

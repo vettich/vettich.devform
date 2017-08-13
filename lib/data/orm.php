@@ -27,8 +27,10 @@ class orm extends _data
 			if(!$this->isClass()) {
 				throw new DataException("\"$this->dbClass\" not found");
 			}
+		} elseif (isset($args['values'])) {
+			$this->arValues = $args['values'];
 		} else {
-			throw new DataException("\"dbClass\" param not found");
+			throw new DataException("\"dbClass\" or \"values\" param not found");
 		}
 
 		parent::__construct($args);
@@ -61,7 +63,7 @@ class orm extends _data
 				$isChange = true;
 			}
 		}
-		if($isChange) {
+		if($isChange && !empty($this->dbClass)) {
 			$cl = $this->dbClass;
 			$arV = $this->arValues;
 			unset($arV['ID']);
@@ -92,6 +94,12 @@ class orm extends _data
 					$params['select'][$key] = substr($value, 0, $pos);
 				}
 			}
+		}
+		if(empty($this->dbClass)) {
+			if(!empty($this->arValues)) {
+				return $this->arValues;
+			}
+			return null;
 		}
 		$cl = $this->dbClass;
 		if(is_array($params['filter'])) {
@@ -132,7 +140,6 @@ class orm extends _data
 		if($this->trimPrefix) {
 			$name = $this->trim($name);
 		}
-
 		if($this->arValues) {
 			// if($name == 'CONDITIONS') {
 			// devdebug($name);
@@ -140,18 +147,20 @@ class orm extends _data
 			// devdebug($this->arValues, 'post');
 			return self::valueFrom($this->arValues, $name, $default);
 		}
-
 		if(!$this->filter['ID']) {
 			return $default;
 		}
-
+		if(empty($this->dbClass)) {
+			return $default;
+		}
 		$cl = $this->dbClass;
 		$rs = $cl::getList(array(
 			'filter' => $this->filter,
 			'limit' => 1,
 		));
-		if($ar = $rs->fetch())
+		if($ar = $rs->fetch()) {
 			$this->arValues = $ar;
+		}
 		return $this->arValues[$name] ?: $default;
 	}
 

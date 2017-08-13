@@ -193,7 +193,7 @@ class Module
 		if(is_array($data)) {
 			foreach($data as $key => $value) {
 				$newKey = \Bitrix\Main\Text\Encoding::convertEncodingToCurrent($key);
-				$newValue = \Bitrix\Main\Text\Encoding::convertEncodingToCurrent($value);
+				$newValue = self::convertEncodingToCurrent($value);
 				$data[$newKey] = $newValue;
 				if($newKey != $key) {
 					unset($data[$key]);
@@ -277,10 +277,10 @@ class Module
 			$_key = substr($key, 0, $pos);
 			$_postkey = substr($key, $pos);
 			$_postkey = str_replace(array('[', ']'), array('["', '"]'), $_postkey);
-			eval('$ret = $arr["'.$_key.'"]'.$_postkey.' ?: $default;');
+			eval('$ret = isset($arr["'.$_key.'"]'.$_postkey.') ? $arr["'.$_key.'"]'.$_postkey.' : $default;');
 			return $ret;
 		} else {
-			return $arr[$key] ?: $default;
+			return isset($arr[$key]) ? $arr[$key] : $default;
 		}
 	}
 
@@ -352,24 +352,48 @@ class Module
 
 	public static function substr($str, $start, $length=false, $encoding='UTF-8', $wordwrap=true, $postfix='...')
 	{
-		$orig_len = strlen($str);
+		$orig_len = self::mb_strlen($str);
 		if($orig_len <= $length) {
 			return $str;
 		}
-		$postfix_len = strlen($postfix);
+		$postfix_len = self::mb_strlen($postfix);
 		if($length===false) {
 			$length = $orig_len;
 		}
 		if($postfix && $length>$postfix_len) {
 			$length -= $postfix_len;
 		}
-		$res = mb_substr($str, $start, $length, $encoding);
+		$res = self::mb_substr($str, $start, $length, $encoding);
 		if($wordwrap) {
-			$res = mb_substr($res, 0, mb_strripos($res, ' ', 0, $encoding), $encoding);
+			$res = self::mb_substr($res, 0, self::mb_strripos($res, ' ', 0, $encoding), $encoding);
 		}
-		if($postfix && $length>$postfix_len && strlen($res) < $orig_len) {
+		if($postfix && $length>$postfix_len && self::mb_strlen($res) < $orig_len) {
 			$res .= $postfix;
 		}
 		return $res;
+	}
+
+	public static function mb_substr($str, $start, $len=NULL, $encoding=NULL)
+	{
+		if(function_exists('mb_substr')) {
+			return mb_substr($str, $start, $len, $encoding ?: 'UTF-8');
+		}
+		return substr($str, $start, $len);
+	}
+
+	public static function mb_strripos($haystack, $needle, $offset=0, $encoding=NULL)
+	{
+		if(function_exists('mb_strripos')) {
+			return mb_strripos($haystack, $needle, $offset, $encoding ?: 'UTF-8');
+		}
+		return strripos($haystack, $needle, $offset);
+	}
+
+	public static function mb_strlen($str, $encoding=NULL)
+	{
+		if(function_exists('mb_strlen')) {
+			return mb_strlen($str, $encoding ?: 'UTF-8');
+		}
+		return strlen($str);
 	}
 }

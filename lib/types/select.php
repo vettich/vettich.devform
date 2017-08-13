@@ -34,7 +34,7 @@ class select extends _type
 		} else {
 			$value = $this->getValue($this->data);
 		}
-		if(empty($value)) {
+		if($value === null) {
 			$value = $this->default_value;
 		}
 
