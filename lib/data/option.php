@@ -27,7 +27,6 @@ class option extends _data
 		if(isset($args['paramPrefix'])) {
 			$this->paramPrefix = $args['paramPrefix'];
 		}
-
 		parent::__construct($args);
 	}
 

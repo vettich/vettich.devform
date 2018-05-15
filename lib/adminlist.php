@@ -112,7 +112,7 @@ class AdminList extends Module
 					$arID[] = $ar['ID'];
 				}
 			}
-			foreach($arID as $ID) {
+			foreach((array)$arID as $ID) {
 				$ID = IntVal($ID);
 				if($ID <= 0) {
 					continue;
@@ -133,7 +133,7 @@ class AdminList extends Module
 	function doEditAction()
 	{
 		if($this->list->EditAction()) {
-			foreach($_REQUEST['FIELDS'] as $id => $arField) {
+			foreach((array)$_REQUEST['FIELDS'] as $id => $arField) {
 				$arField['ID'] = $id;
 				$this->datas->saveValues($arField);
 			}
@@ -165,7 +165,7 @@ class AdminList extends Module
 	function getHeaders()
 	{
 		$arHeaders = array();
-		foreach ($this->params as $id => $param) {
+		foreach((array)$this->params as $id => $param) {
 			$arHeaders[] = array(
 				'id' => $param->id,
 				'content' => $param->title,
@@ -182,7 +182,7 @@ class AdminList extends Module
 		$arSelectedFields = $this->list->GetVisibleHeaderColumns();
 		if (!is_array($arSelectedFields) || empty($arSelectedFields)) {
 			$arSelectedFields = array();
-			foreach ($this->params as $id => $param) {
+			foreach((array)$this->params as $id => $param) {
 				if ($this->isHiddenParam($id)) {
 					$arSelectedFields[] = $id;
 				}
@@ -201,7 +201,7 @@ class AdminList extends Module
 			$params['select'][] = 'ID';
 		}
 		if(!empty($this->datas->datas)) {
-			foreach($this->datas->datas as $data) {
+			foreach((array)$this->datas->datas as $data) {
 				if(method_exists($data, 'getList')) {
 					return $data->getList($params);
 				}
@@ -221,7 +221,7 @@ class AdminList extends Module
 		global $find, $find_type;
 
 		$arFilter = array();
-		foreach ($this->params as $param) {
+		foreach((array)$this->params as $param) {
 			$find_name = 'find_'.$param->id;
 			if (!empty($find) && $find_type == $find_name) {
 				$arFilter[$param->getFilterId()] = $find;
@@ -230,7 +230,7 @@ class AdminList extends Module
 			}
 		}
 
-		foreach ($arFilter as $key => $value) {
+		foreach((array)$arFilter as $key => $value) {
 			if ($value == "")
 				unset($arFilter[$key]);
 		}
@@ -266,7 +266,7 @@ class AdminList extends Module
 	function getContextMenu()
 	{
 		$arResult = array();
-		foreach($this->buttons as $button) {
+		foreach((array)$this->buttons as $button) {
 			$arResult[] = array(
 				'HTML' => $button->render(),
 			);
@@ -284,7 +284,7 @@ class AdminList extends Module
 		);
 		$listFilter = array();
 		$filterRows = array();
-		foreach ($this->params as $param) {
+		foreach((array)$this->params as $param) {
 			$listFilter[$param->id] = $param->title;
 			$findFilter['reference'][] = $param->title;
 			$findFilter['reference_id'][] = 'find_'.$param->id;
@@ -305,7 +305,7 @@ class AdminList extends Module
 					</tr>
 				<? endif; ?>
 				<?
-				foreach ($this->params as $param) {
+				foreach((array)$this->params as $param) {
 					?><tr>
 						<td><? echo $param->title ?></td>
 						<td><? echo $param->renderTemplate('{content}', array('{name}' => 'find_'.$param->id)) ?></td>
@@ -338,7 +338,7 @@ class AdminList extends Module
 		while ($arRes = $data->NavNext(false)) {
 			$row = $this->list->AddRow($arRes['ID'], $arRes);
 			$this->onHandler('renderRow', $this, $row);
-			foreach ($select as $fieldId) {
+			foreach((array)$select as $fieldId) {
 				$param = $this->params[$fieldId];
 				if ($param) {
 					if(in_array($param->id, $this->linkEditInsert)) {
@@ -351,9 +351,9 @@ class AdminList extends Module
 						if(($pos = strpos($param->id, '[')) !== false) {
 							$prekey = substr($param->id, 0, $pos);
 							$postkey = substr($param->id, $pos);
-							$name = "FIELDS[{$arRes[ID]}][$prekey]$postkey";
+							$name = "FIELDS[{$arRes['ID']}][$prekey]$postkey";
 						} else {
-							$name = "FIELDS[{$arRes[ID]}][{$param->id}]";
+							$name = "FIELDS[{$arRes['ID']}][{$param->id}]";
 						}
 						$edit = $param->renderTemplate('{content}', array(
 							'{id}' => 'FIELDS-'.$arRes['ID'].'-'.str_replace(array('][', ']', '['), array('-', '', '-'), $param->id),

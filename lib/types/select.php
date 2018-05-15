@@ -29,6 +29,7 @@ class select extends _type
 
 	public function renderTemplate($template='', $replaces=array())
 	{
+		$this->onHandler('renderTemplate', $this, $template, $replaces);
 		if(isset($replaces['{value}'])) {
 			$value = $replaces['{value}'];
 		} else {

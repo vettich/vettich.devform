@@ -16,6 +16,7 @@ class _data extends \vettich\devform\Module
 		if(isset($args['paramPrefix'])) $this->paramPrefix = $args['paramPrefix'];
 		if(isset($args['prefix'])) $this->paramPrefix = $args['prefix'];
 		if(isset($args['trimPrefix'])) $this->trimPrefix = $args['trimPrefix'];
+		parent::__construct($args);
 	}
 
 	public function save(&$arValues=array()) {}

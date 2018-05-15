@@ -66,6 +66,9 @@ class checkbox extends _type
 		} else {
 			if(!is_array($value)) {
 				$value = unserialize($value);
+				if(!is_array($value)) {
+					$value = array();
+				}
 			}
 			$html_options = '';
 			foreach ($this->options as $key => $opt) {

@@ -67,7 +67,7 @@ class AdminForm extends Module
 
 		$tabClass = 'vettich\devform\Tab';
 		$result = array();
-		foreach ($tabs as $tab) {
+		foreach((array)$tabs as $tab) {
 			if($res = $tabClass::createTab($tab)) {
 				$result[] = $res;
 			}
@@ -88,7 +88,7 @@ class AdminForm extends Module
 		if((!isset($args['dont_save']) or $args['dont_save'] != true)
 			&& !empty($_POST) && !empty($this->datas)) {
 			$arValues = array();
-			foreach($this->tabs as $tab) {
+			foreach((array)$this->tabs as $tab) {
 				$arValues = array_merge($arValues, _type::getValuesFromPost($tab->params));
 			}
 			/** 
@@ -165,7 +165,7 @@ class AdminForm extends Module
 			}
 		}
 		if(is_array($this->headerButtons)) {
-			foreach($this->headerButtons as $id=>$button) {
+			foreach((array)$this->headerButtons as $id=>$button) {
 				$arResult[$id] = array(
 					'HTML' => $button->render(),
 				);
@@ -190,39 +190,50 @@ class AdminForm extends Module
 		}
 	}
 
-	public function render()
+	public static function initRequires()
 	{
 		\CJSCore::Init(array('ajax'));
 		\CJSCore::Init(array('jquery'));
 		$GLOBALS['APPLICATION']->AddHeadScript('/bitrix/js/vettich.devform/script.js');
 		$GLOBALS['APPLICATION']->SetAdditionalCSS('/bitrix/css/vettich.devform/style.css');
+	}
 
+	public function getTabs()
+	{
 		$arTabs = array();
-		foreach($this->tabs as $k => $tab) {
+		foreach((array)$this->tabs as $k => $tab) {
 			$arTabs[] = array(
 				'DIV' => 'DIV_'.$k,
 				'TAB' => $tab->name,
 				'TITLE' => $tab->title,
 			);
 		}
+		return $arTabs;
+	}
 
-		$context = new CAdminContextMenu($this->getContextMenu());
-		$context->Show();
-		if($_REQUEST['ajax'] == 'Y' && $_REQUEST['ajax_formid'] == $this->id) {
-			$GLOBALS['APPLICATION']->RestartBuffer();
+	/**
+	 * возвращает дополнительные JS код и CSS стили
+	 * @return string js and css
+	 */
+	public function getJsCss()
+	{
+		$result = '';
+		if(!empty($this->js)) {
+			$result .= '<script>'.$this->js.'</script>';
 		}
-		$this->renderErrors($this->errorMessage);
-
-		if(!!$this->pageTitle) {
-			$GLOBALS['APPLICATION']->SetTitle($this->pageTitle);
+		if(!empty($this->css)) {
+			$result .= '<style>'.$this->css.'</style>';
 		}
+		return $result;
+	}
 
-		$tabControl = new \CAdminTabControl('TAB_CONTROL_'.$this->id, $arTabs, true, true);
+	public function getContent()
+	{
+		ob_start();
+		$tabControl = new \CAdminTabControl('TAB_CONTROL_'.$this->id, $this->getTabs(), true, true);
 		$tabControl->Begin();
 
-		ob_start();
-
-		foreach($this->tabs as $tab) {
+		foreach((array)$this->tabs as $tab) {
 			$tabControl->BeginNextTab();
 			$tab->render($this->datas);
 		}
@@ -233,21 +244,50 @@ class AdminForm extends Module
 
 		echo bitrix_sessid_post();
 		$tabControl->End();
-
-		if(!empty($this->js)) {
-			echo '<script>'.$this->js.'</script>';
-		}
-		if(!empty($this->css)) {
-			echo '<style>'.$this->css.'</style>';
-		}
+		echo $this->getJsCss();
 
 		$ob_content = ob_get_contents();
 		ob_end_clean();
 
+		return $ob_content;
+	}
+
+	public function renderContextMenu()
+	{
+		$context = new CAdminContextMenu($this->getContextMenu());
+		$context->Show();
+	}
+
+	public function restartBufferIfAjax()
+	{
+		if($_REQUEST['ajax'] == 'Y' && $_REQUEST['ajax_formid'] == $this->id) {
+			$GLOBALS['APPLICATION']->RestartBuffer();
+		}
+	}
+
+	public static function setTitle($title)
+	{
+		if(!!$pageTitle) {
+			$GLOBALS['APPLICATION']->SetTitle($pageTitle);
+		}
+	}
+
+	public function renderTemplate()
+	{
 		echo str_replace(
 			array('{form-id}',        '{content}'),
-			array('FORM_'.$this->id,  $ob_content),
+			array('FORM_'.$this->id,  $this->getContent()),
 			$this->containerTemplate
 		);
+	}
+
+	public function render()
+	{
+		self::initRequires();
+		$this->renderContextMenu();
+		$this->restartBufferIfAjax();
+		$this->renderErrors($this->errorMessage);
+		self::setTitle($this->pageTitle);
+		$this->renderTemplate();
 	}
 }

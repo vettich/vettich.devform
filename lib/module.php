@@ -10,7 +10,7 @@ class Module
 {
 	const MODULE_ID = 'vettich.devform';
 
-	private $_handlers = array();
+	public $_handlers = array();
 	public function __construct($args=array())
 	{
 		$this->_handlers = self::getOnHandler($args);
@@ -32,7 +32,7 @@ class Module
 		unset($params['namespace']);
 		unset($params['class']);
 
-		foreach ($namespaces as $namespace) {
+		foreach((array)(array)$namespaces as $namespace) {
 			$cl = $clName;
 			if(!empty($namespace))
 				$cl = $namespace.'\\'.$clName;
@@ -65,7 +65,7 @@ class Module
 				}
 			}
 		}
-		foreach($search as $macros) {
+		foreach((array)$search as $macros) {
 			$mess = substr($macros, 1, -1);
 			$mess = GetMessage($mess);
 			if(!empty($mess)) {
@@ -191,7 +191,7 @@ class Module
 	public static function convertEncodingToCurrent($data)
 	{
 		if(is_array($data)) {
-			foreach($data as $key => $value) {
+			foreach((array)$data as $key => $value) {
 				$newKey = \Bitrix\Main\Text\Encoding::convertEncodingToCurrent($key);
 				$newValue = self::convertEncodingToCurrent($value);
 				$data[$newKey] = $newValue;
@@ -218,7 +218,7 @@ class Module
 	public static function getOnHandler($args)
 	{
 		$arResult = array();
-		foreach($args as $key => $arg) {
+		foreach((array)$args as $key => $arg) {
 			if(strpos($key, 'on ') === 0) {
 				$arResult[substr($key, 3)] = $arg;
 			}
@@ -316,7 +316,9 @@ class Module
 			curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
 			curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
 			curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
-			call_user_func_array($on, array(&$curl, $url, $data));
+			if(is_callable($on)) {
+				call_user_func_array($on, array(&$curl, $url, $data));
+			}
 			$result = curl_exec($curl);
 			curl_close($curl);
 		}
@@ -333,7 +335,9 @@ class Module
 			curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
 			curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
 			curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
-			call_user_func_array($on, array(&$curl, $url));
+			if(is_callable($on)) {
+				call_user_func_array($on, array(&$curl, $url));
+			}
 			$result = curl_exec($curl);
 			curl_close($curl);
 		}
@@ -395,5 +399,10 @@ class Module
 			return mb_strlen($str, $encoding ?: 'UTF-8');
 		}
 		return strlen($str);
+	}
+
+	public static function selfValue($value)
+	{
+		return str_replace(':', '\:', $value);
 	}
 }

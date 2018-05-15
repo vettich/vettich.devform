@@ -11,7 +11,8 @@ class orm extends _data
 	public $filter = array();
 	public $ID = null;
 
-	private $dbClass = null;
+	/** @var string db class */
+	private $db = null;
 	private $arValues = null;
 
 	function __construct($args=array())
@@ -22,15 +23,20 @@ class orm extends _data
 			$this->filter = array('ID' => $_GET['ID']);
 		}
 
-		if(isset($args['dbClass'])) {
-			$this->dbClass = $args['dbClass'];
+		if(isset($args['db'])) {
+			$this->db = $args['db'];
+			if(!$this->isClass()) {
+				throw new DataException("\"$this->db\" not found");
+			}
+		} elseif (isset($args['dbClass'])) {
+			$this->db = $args['dbClass'];
 			if(!$this->isClass()) {
 				throw new DataException("\"$this->dbClass\" not found");
 			}
 		} elseif (isset($args['values'])) {
 			$this->arValues = $args['values'];
 		} else {
-			throw new DataException("\"dbClass\" or \"values\" param not found");
+			throw new DataException("\"db\" or \"values\" param not found");
 		}
 
 		parent::__construct($args);
@@ -38,11 +44,11 @@ class orm extends _data
 
 	private function isClass()
 	{
-		if(class_exists($this->dbClass)) {
+		if(class_exists($this->db)) {
 			return true;
 		}
-		if(class_exists($this->dbClass.'Table')) {
-			$this->dbClass .= 'Table';
+		if(class_exists($this->db.'Table')) {
+			$this->db .= 'Table';
 			return true;
 		}
 		return false;
@@ -63,17 +69,21 @@ class orm extends _data
 				$isChange = true;
 			}
 		}
-		if($isChange && !empty($this->dbClass)) {
-			$cl = $this->dbClass;
+		if($isChange && !empty($this->db)) {
+			$cl = $this->db;
 			$arV = $this->arValues;
 			unset($arV['ID']);
-			call_user_func($this->beforeSave, $this, $arValues);
+			if(is_callable($this->beforeSave)) {
+				call_user_func($this->beforeSave, $this, $arValues);
+			}
 			if($this->arValues['ID'] > 0) {
 				$result = $cl::update($this->arValues['ID'], $arV);
 			} else {
 				$result = $cl::add($arV);
 			}
-			call_user_func($this->afterSave, $this, $result);
+			if(is_callable($this->afterSave)) {
+				call_user_func($this->afterSave, $this, $result);
+			}
 		}
 		if(empty($result)) {
 			return null;
@@ -95,13 +105,13 @@ class orm extends _data
 				}
 			}
 		}
-		if(empty($this->dbClass)) {
+		if(empty($this->db)) {
 			if(!empty($this->arValues)) {
 				return $this->arValues;
 			}
 			return null;
 		}
-		$cl = $this->dbClass;
+		$cl = $this->db;
 		if(is_array($params['filter'])) {
 			$params['filter'] = array_merge((array)$this->filter, (array)$params['filter']);
 		} else {
@@ -150,10 +160,10 @@ class orm extends _data
 		if(!$this->filter['ID']) {
 			return $default;
 		}
-		if(empty($this->dbClass)) {
+		if(empty($this->db)) {
 			return $default;
 		}
-		$cl = $this->dbClass;
+		$cl = $this->db;
 		$rs = $cl::getList(array(
 			'filter' => $this->filter,
 			'limit' => 1,
@@ -169,7 +179,7 @@ class orm extends _data
 		if(!$this->exists($name))
 			return null;
 
-		$cl = $this->dbClass;
+		$cl = $this->db;
 		return $cl::delete($value)->isSuccess();
 	}
 }
