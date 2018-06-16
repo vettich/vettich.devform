@@ -52,10 +52,11 @@ abstract class _type extends \vettich\devform\Module
 
 		if(isset($args['refresh']) && ($args['refresh'] or $args['refresh'] == 'Y')) {
 			$tmp = 'Vettich.Devform.Refresh(this);';
-			if(isset($this->params['onclick'])) {
-				$tmp .= $this->params['onclick'];
+			$event_name = 'onclick';
+			if(isset($this->params[$event_name])) {
+				$tmp .= $this->params[$event_name];
 			}
-			$this->params['onclick'] = $tmp;
+			$this->params[$event_name] = $tmp;
 		}
 		if(empty($this->name)) {
 			$this->name = $id;

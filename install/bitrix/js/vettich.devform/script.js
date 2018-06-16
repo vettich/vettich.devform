@@ -39,7 +39,7 @@ Vettich.Devform.Refresh = function () {
 	_link += (_link.indexOf('?') > 0 ? '&' : '?') + 'ajax=Y';
 	_link += '&ajax_formid=' + origFormid;
 	console.log('ajax to ' + _link);
-	var _data = jQuery('#' + $('.js-vform form').attr('id')).serialize();
+	var _data = $('.js-vform form').serialize();
 	if(_data.indexOf('_active_tab') < 0)
 		_data += '&' + formid + '_active_tab=' + $('#' + formid + '_active_tab').val();
 	jQuery.ajax({
@@ -48,23 +48,14 @@ Vettich.Devform.Refresh = function () {
 		data: _data,
 		timeout: 10000,
 		success: function(data){
-			jdata = $(data);
-			sdata = data;
 			BX.closeWait('adm-workarea', show);
 			$('#voptions_overlay').remove();
-			// parser = new DOMParser();
-			// _dom = parser.parseFromString(data, 'text/html');
-
-			// if(!_dom || !_dom.getElementById("tabControl_layout"))
-			// 	return;
 			eval(formid + ' = null;');
 			$('#'+ formid + '_layout').html(data);
-			// eval(formid + '.PreInit()');
 			$('.js-vform').show();
 			Vettich.Devform.HeadingsInit();
 			Vettich.Devform.TextareaChooseShow();
 			Vettich.Devform.TextareaChooseInit();
-			// $('#tabControl_layout').html(_dom.getElementById("tabControl_layout").outerHTML);
 		},
 		error: function(response, status) {
 			BX.closeWait('adm-workarea', show);
