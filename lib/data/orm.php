@@ -1,4 +1,4 @@
-<?
+<?php
 namespace vettich\devform\data;
 
 use vettich\devform\exceptions\DataException;
@@ -8,29 +8,29 @@ use vettich\devform\exceptions\DataException;
 */
 class orm extends _data
 {
-	public $filter = array();
+	public $filter = [];
 	public $ID = null;
 
 	/** @var string db class */
 	private $db = null;
 	private $arValues = null;
 
-	function __construct($args=array())
+	public function __construct($args=[])
 	{
-		if(isset($args['filter'])) {
+		if (isset($args['filter'])) {
 			$this->filter = $args['filter'];
-		} elseif(!empty($_GET['ID'])) {
-			$this->filter = array('ID' => $_GET['ID']);
+		} elseif (!empty($_GET['ID'])) {
+			$this->filter = ['ID' => $_GET['ID']];
 		}
 
-		if(isset($args['db'])) {
+		if (isset($args['db'])) {
 			$this->db = $args['db'];
-			if(!$this->isClass()) {
+			if (!$this->isClass()) {
 				throw new DataException("\"$this->db\" not found");
 			}
 		} elseif (isset($args['dbClass'])) {
 			$this->db = $args['dbClass'];
-			if(!$this->isClass()) {
+			if (!$this->isClass()) {
 				throw new DataException("\"$this->dbClass\" not found");
 			}
 		} elseif (isset($args['values'])) {
@@ -44,24 +44,24 @@ class orm extends _data
 
 	private function isClass()
 	{
-		if(class_exists($this->db)) {
+		if (class_exists($this->db)) {
 			return true;
 		}
-		if(class_exists($this->db.'Table')) {
+		if (class_exists($this->db.'Table')) {
 			$this->db .= 'Table';
 			return true;
 		}
 		return false;
 	}
 
-	public function save(&$arValues=array())
+	public function save(&$arValues=[])
 	{
 		$isChange = false;
-		foreach($arValues as $key => $value) {
-			if(!$this->exists($key)) {
+		foreach ($arValues as $key => $value) {
+			if (!$this->exists($key)) {
 				continue;
 			}
-			if($this->trimPrefix) {
+			if ($this->trimPrefix) {
 				$key = $this->trim($key);
 			}
 			/*if($this->arValues[$key] != $value)*/ {
@@ -69,63 +69,65 @@ class orm extends _data
 				$isChange = true;
 			}
 		}
-		if($isChange && !empty($this->db)) {
+		if ($isChange && !empty($this->db)) {
 			$cl = $this->db;
 			$arV = $this->arValues;
 			unset($arV['ID']);
-			if(is_callable($this->beforeSave)) {
+			if (is_callable($this->beforeSave)) {
 				call_user_func($this->beforeSave, $this, $arValues);
 			}
-			if($this->arValues['ID'] > 0) {
+			if ($this->arValues['ID'] > 0) {
 				$result = $cl::update($this->arValues['ID'], $arV);
 			} else {
 				$result = $cl::add($arV);
 			}
-			if(is_callable($this->afterSave)) {
+			if (is_callable($this->afterSave)) {
 				call_user_func($this->afterSave, $this, $result);
 			}
 		}
-		if(empty($result)) {
+		if (empty($result)) {
 			return null;
 		}
 
 		$key = 'ID';
-		if($this->trimPrefix && !empty($this->paramPrefix)) {
+		if ($this->trimPrefix && !empty($this->paramPrefix)) {
 			$key = $this->paramPrefix.'ID';
 		}
 		$arValues[$key] = $this->arValues['ID'] = $result->getId();
 		return $arValues[$key];
 	}
 
-	public function getList($params=array()) {
-		if(isset($params['select'])) {
+	public function getList($params=[])
+	{
+		if (isset($params['select'])) {
 			foreach ($params['select'] as $key => $value) {
-				if(false !== ($pos = strpos($value, '['))) {
+				if (false !== ($pos = strpos($value, '['))) {
 					$params['select'][$key] = substr($value, 0, $pos);
 				}
 			}
 		}
-		if(empty($this->db)) {
-			if(!empty($this->arValues)) {
+		if (empty($this->db)) {
+			if (!empty($this->arValues)) {
 				return $this->arValues;
 			}
 			return null;
 		}
 		$cl = $this->db;
-		if(is_array($params['filter'])) {
+		if (is_array($params['filter'])) {
 			$params['filter'] = array_merge((array)$this->filter, (array)$params['filter']);
 		} else {
 			$params['filter'] = $this->filter;
 		}
 		try {
 			return $cl::getList($params);
-		} catch(\Exception $e) {}
+		} catch (\Exception $e) {
+		}
 		return null;
 	}
 
 	public function get($name, $default=null)
 	{
-		if(!$this->exists($name)) {
+		if (!$this->exists($name)) {
 			return $default;
 		}
 		return $this->_value($name, $default);
@@ -138,7 +140,7 @@ class orm extends _data
 
 	public function value($name, $val=null)
 	{
-		if($val === null) {
+		if ($val === null) {
 			return $this->get($name);
 		} else {
 			return $this->set($name, $val);
@@ -147,28 +149,28 @@ class orm extends _data
 
 	private function _value($name, $default=null)
 	{
-		if($this->trimPrefix) {
+		if ($this->trimPrefix) {
 			$name = $this->trim($name);
 		}
-		if($this->arValues) {
+		if ($this->arValues) {
 			// if($name == 'CONDITIONS') {
 			// devdebug($name);
 			// }
 			// devdebug($this->arValues, 'post');
-			return self::valueFrom($this->arValues, $name, $default);
+			return self::arrayChain($this->arValues, self::strToChain($name), $default);
 		}
-		if(!$this->filter['ID']) {
+		if (!$this->filter['ID']) {
 			return $default;
 		}
-		if(empty($this->db)) {
+		if (empty($this->db)) {
 			return $default;
 		}
 		$cl = $this->db;
-		$rs = $cl::getList(array(
+		$rs = $cl::getList([
 			'filter' => $this->filter,
 			'limit' => 1,
-		));
-		if($ar = $rs->fetch()) {
+		]);
+		if ($ar = $rs->fetch()) {
 			$this->arValues = $ar;
 		}
 		return $this->arValues[$name] ?: $default;
@@ -176,8 +178,9 @@ class orm extends _data
 
 	public function delete($name, $value)
 	{
-		if(!$this->exists($name))
+		if (!$this->exists($name)) {
 			return null;
+		}
 
 		$cl = $this->db;
 		return $cl::delete($value)->isSuccess();

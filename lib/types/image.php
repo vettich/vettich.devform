@@ -1,4 +1,4 @@
-<?
+<?php
 namespace vettich\devform\types;
 
 use CFile;
@@ -9,35 +9,50 @@ use CFile;
 class image extends _type
 {
 	public $content = '<input name="{name}" value="{value}" {params}>';
-	public $params = array('type' => 'file');
+	public $params = ['type' => 'file'];
 	public $module_id = 'vettich.devform';
 	public $maxCount = 1;
+	public $multiple = false;
+	public $raw = false;
 
 	public function __construct($id, $args)
 	{
 		parent::__construct($id, $args);
 
-		if(isset($args['module_id'])) {
+		if (isset($args['module_id'])) {
 			$this->module_id = $args['module_id'];
 		}
-		if(isset($args['maxCount'])) {
+		if (isset($args['maxCount'])) {
 			$this->maxCount = $args['maxCount'];
+		}
+		if (isset($args['multiple'])) {
+			$this->multiple = $args['multiple'];
+		}
+		if (isset($args['raw'])) {
+			$this->raw = $args['raw'];
+		}
+		if ($this->maxCount > 1) {
+			$this->multiple = true;
 		}
 	}
 
-	public function renderTemplate($template='', $replaces=array())
+	public function renderTemplate($template='', $replaces=[])
 	{
-		if(isset($replaces['{value}'])) {
+		if (isset($replaces['{value}'])) {
 			$value = $replaces['{value}'];
 		} else {
 			$value = $this->getValue($this->data);
 		}
-		if(empty($value)) {
+		if (empty($value)) {
 			$value = $this->default_value;
 		}
 		if (class_exists('\Bitrix\Main\UI\FileInput')) {
-			$this->content = \Bitrix\Main\UI\FileInput::createInstance(array(
-					"name" => $this->name,
+			$inputName = $this->name;
+			if ($this->multiple) {
+				$inputName .= '[n#IND#]';
+			}
+			$this->content = \Bitrix\Main\UI\FileInput::createInstance([
+					"name" => $inputName,
 					"description" => false,
 					"upload" => true,
 					"allowUpload" => "A",
@@ -46,15 +61,15 @@ class image extends _type
 					"cloud" => false,
 					"delete" => true,
 					"maxCount" => $this->maxCount,
-				))->show($value);
+				])->show($value);
 		} else {
 			$this->content = CFile::InputFile($this->name, 20, $value);
-			if($value > 0) {
+			if ($value > 0) {
 				$this->content .= '<br>'.CFile::ShowImage($value, 200, 200, "border=0", "", true);
 				$this->content .= '<input type="hidden" name="'.$this->name.'_old" value="'.$value.'">';
 			}
 		}
-		if($value > 0) {
+		if ($value > 0) {
 			$this->content .= '<input type="hidden" name="'.$this->name.'_old" value="'.$value.'">';
 		}
 
@@ -69,24 +84,36 @@ class image extends _type
 
 	public function getValueFromPost()
 	{
-// ddebug($_REQUEST);
-		if($_SERVER['REQUEST_METHOD'] == 'POST') {
-		    $arIMAGE = self::post($this->name);
-		    // if(intval($arIMAGE)) {
-		    // 	$arIMAGE = CFile::GetFileArray($arIMAGE);
-		    // }
-		    if(stripos($arIMAGE['tmp_name'],$_SERVER['DOCUMENT_ROOT']) === false) {
-		    	$arIMAGE['tmp_name'] = $_SERVER['DOCUMENT_ROOT'].$arIMAGE['tmp_name'];
-		    }
-		    $arIMAGE['old_file'] = self::post($this->name.'_old');
-		    $arIMAGE['del'] = self::post($this->name.'_del');
-		    $arIMAGE['MODULE_ID'] = $this->module_id;
-		    if (!empty($arIMAGE['name']) || !empty($arIMAGE['del'])) {
-		        $fid = CFile::SaveFile($arIMAGE, $this->module_id);
-				$this->value = $fid;
-		        return $fid;
-		    }
+		if ($_SERVER['REQUEST_METHOD'] != 'POST') {
+			return 0;
 		}
-		return 0;
+		$arIMAGE = self::post($this->name);
+		if ($this->raw) {
+			return $arIMAGE;
+		}
+		if (!$this->multiple) {
+			$arIMAGE = [$arIMAGE];
+		}
+		$results = [];
+		foreach ($arIMAGE as $key => $img) {
+			$pathinfo = \Bitrix\Main\UI\Uploader\Uploader::getPaths($img["tmp_name"]);
+			$img['tmp_name'] = $pathinfo['tmp_name'];
+			$img['tmp_url'] = $pathinfo['tmp_url'];
+			$img['old_file'] = self::post($this->name.'_old');
+			$img['del'] = self::post($this->name.'_del');
+			$img['MODULE_ID'] = $this->module_id;
+			if (!empty($img['name']) || !empty($img['del'])) {
+				$fid = CFile::SaveFile($img, $this->module_id);
+				$this->value = $fid;
+				$results[] = $fid;
+			}
+		}
+		if ($this->multiple) {
+			return $results;
+		}
+		if (empty($results)) {
+			return 0;
+		}
+		return $results[0];
 	}
 }

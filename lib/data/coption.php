@@ -1,5 +1,7 @@
-<?
+<?php
 namespace vettich\devform\data;
+
+use vettich\devform\exceptions\DataException;
 
 /**
 * @author Oleg Lenshin (Vettich)
@@ -8,9 +10,9 @@ class COption extends _data
 {
 	public $module_id = '';
 
-	function __construct($args = array())
+	public function __construct($args = [])
 	{
-		if(isset($args['module_id'])) {
+		if (isset($args['module_id'])) {
 			$this->module_id = $args['module_id'];
 		} elseif (isset($args['moduleId'])) {
 			$this->module_id = $args['moduleId'];
@@ -18,7 +20,7 @@ class COption extends _data
 			throw new DataException('"module_id" param required');
 		}
 
-		if(isset($args['paramPrefix'])) {
+		if (isset($args['paramPrefix'])) {
 			$this->paramPrefix = $args['paramPrefix'];
 		}
 
@@ -27,20 +29,19 @@ class COption extends _data
 
 	public static function createFromString($arData)
 	{
-		if(!isset($arData[1])) {
+		if (!isset($arData[1])) {
 			throw new DataException('"module_id" param required');
 		}
-		return new self(array(
+		return new self([
 			'module_id' => $arData[1],
 			'paramPrefix' => $arData[2] ?: '',
-		));
+		]);
 	}
 
-	public function save(&$arValues=array())
+	public function save(&$arValues=[])
 	{
 		$this->onHandler('beforeSave', $this, $arValues);
-		foreach($arValues as $key => $value)
-		{
+		foreach ($arValues as $key => $value) {
 			self::set($key, $value);
 		}
 		$this->onHandler('afterSave', $this, $arValues);
@@ -48,7 +49,7 @@ class COption extends _data
 
 	public function get($name, $default=null)
 	{
-		if($this->trimPrefix) {
+		if ($this->trimPrefix) {
 			$name = $this->trim($name);
 		}
 
@@ -57,13 +58,13 @@ class COption extends _data
 
 	public function set($name, $value)
 	{
-		if(!$this->exists($name)) {
+		if (!$this->exists($name)) {
 			return;
 		}
-		if($this->trimPrefix) {
+		if ($this->trimPrefix) {
 			$name = $this->trim($name);
 		}
-		if(is_array($value) or is_object($value)) {
+		if (is_array($value) or is_object($value)) {
 			$value = serialize($value);
 		}
 

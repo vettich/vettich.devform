@@ -1,4 +1,4 @@
-<?
+<?php
 namespace vettich\devform;
 
 use vettich\devform\types\_type;
@@ -25,7 +25,6 @@ class AdminForm extends Module
 {
 	public $id = 'ID'; // unique
 	public $pageTitle = false;
-	public $enable = true;
 	public $tabs = null;
 	public $buttons = null;
 	public $headerButtons = null;
@@ -42,18 +41,34 @@ class AdminForm extends Module
 	public $errorMessage = '';
 	public $errorTemplate = '<div class="adm-info-message">{errors}</div>';
 
-	function __construct($id, $args = array())
+	public function __construct($id, $args = [])
 	{
 		parent::__construct($args);
 		$this->id = $id;
-		if(isset($args['enable'])) $this->enable = $args['enable'];
-		if(isset($args['js'])) $this->js = $args['js'];
-		if(isset($args['css'])) $this->css = $args['css'];
-		if(isset($args['pageTitle'])) $this->pageTitle = self::mess($args['pageTitle']);
-		if(isset($args['tabs'])) $this->tabs = $this->initTabs($args['tabs']);
-		if(isset($args['buttons'])) $this->buttons = _type::createTypes($args['buttons']);
-		if(isset($args['headerButtons'])) $this->headerButtons = _type::createTypes($args['headerButtons']);
-		if(isset($args['data'])) $this->datas = _data::createDatas($args['data']);
+		if (isset($args['js'])) {
+			$this->js = $args['js'];
+		}
+		if (isset($args['css'])) {
+			$this->css = $args['css'];
+		}
+		if (isset($args['errorMessage'])) {
+			$this->errorMessage = $args['errorMessage'];
+		}
+		if (isset($args['pageTitle'])) {
+			$this->pageTitle = self::mess($args['pageTitle']);
+		}
+		if (isset($args['tabs'])) {
+			$this->tabs = $this->initTabs($args['tabs']);
+		}
+		if (isset($args['buttons'])) {
+			$this->buttons = _type::createTypes($args['buttons']);
+		}
+		if (isset($args['headerButtons'])) {
+			$this->headerButtons = _type::createTypes($args['headerButtons']);
+		}
+		if (isset($args['data'])) {
+			$this->datas = _data::createDatas($args['data']);
+		}
 
 		$this->onHandler('tabsCreate', $this, $this->tabs);
 		$this->save($args);
@@ -61,14 +76,14 @@ class AdminForm extends Module
 
 	public static function initTabs($tabs)
 	{
-		if(empty($tabs)) {
-			return array();
+		if (empty($tabs)) {
+			return [];
 		}
 
 		$tabClass = 'vettich\devform\Tab';
-		$result = array();
-		foreach((array)$tabs as $tab) {
-			if($res = $tabClass::createTab($tab)) {
+		$result = [];
+		foreach ((array)$tabs as $tab) {
+			if ($res = $tabClass::createTab($tab)) {
 				$result[] = $res;
 			}
 		}
@@ -78,97 +93,107 @@ class AdminForm extends Module
 
 	public function save($args)
 	{
-		if(!empty($_POST)) {
+		if (!empty($_POST)) {
 			$_POST = self::convertEncodingToCurrent($_POST);
 		}
-		if($_REQUEST['ajax'] == 'Y' 
+		if ($_REQUEST['ajax'] == 'Y'
 			&& (!isset($args['save_ajax']) or $args['save_ajax'] != true)) {
 			return;
 		}
-		if((!isset($args['dont_save']) or $args['dont_save'] != true)
-			&& !empty($_POST) && !empty($this->datas)) {
-			$arValues = array();
-			foreach((array)$this->tabs as $tab) {
-				$arValues = array_merge($arValues, _type::getValuesFromPost($tab->params));
-			}
-			/** 
-			* on beforeSave callback
-			*/
-			$beforeSave = $this->onHandler('beforeSave', $arValues, $args, $this);
-			if($beforeSave !== false && !isset($beforeSave['error'])) {
-				$this->datas->saveValues($arValues);
-				/** 
-				* on afterSave callback
-				*/
-				$this->onHandler('afterSave', $arValues, $args, $this);
-				if((isset($_POST['save']) or isset($_POST['_save'])) && !empty($_GET['back_url'])) {
-					LocalRedirect($_GET['back_url']);
-					exit;
-				} elseif(empty($_GET[$this->get_id]) && !empty($arValues[$this->get_id])) {
-					$url = $_SERVER['REQUEST_URI'];
-					if(strpos($url, '?')) {
-						$url .= '&';
-					} else {
-						$url .= '?';
-					}
-					$url .= $this->get_id.'='.$arValues[$this->get_id];
-					$url .= '&TAB_CONTROL_devform_active_tab='.$_POST['TAB_CONTROL_devform_active_tab'];
-					LocalRedirect($url);
-					exit;
-				} else {
-					LocalRedirect($_SERVER['REQUEST_URI']);
-					exit;
-				}
-			} elseif(isset($beforeSave['error'])) {
+		$isDontSave = (isset($args['dont_save']) && $args['dont_save'] == true);
+		\vettich\sp3\Module::log([$isDontSave , empty($_POST) , empty($this->datas)]);
+		if ($isDontSave or empty($_POST) or empty($this->datas)) {
+			return;
+		}
+		$arValues = [];
+		foreach ((array)$this->tabs as $tab) {
+			$arValues = array_merge($arValues, _type::getValuesFromPost($tab->params));
+		}
+		/**
+		* on beforeSave callback
+		*/
+		$beforeSave = $this->onHandler('beforeSave', $arValues, $args, $this);
+		if ($beforeSave === false or isset($beforeSave['error'])) {
+			if (isset($beforeSave['error'])) {
 				$this->errorMessage = $beforeSave['error'];
 			}
+			return;
+		}
+		$res = $this->datas->saveValues($arValues);
+		if ($res === false or isset($res['error'])) {
+			if (isset($res['error'])) {
+				$this->errorMessage = $res['error'];
+			}
+			return;
+		}
+		/**
+		* on afterSave callback
+		*/
+		$this->onHandler('afterSave', $arValues, $args, $this);
+		if ((isset($_POST['save']) or isset($_POST['_save'])) && !empty($_GET['back_url'])) {
+			LocalRedirect($_GET['back_url']);
+			exit;
+		} elseif (empty($_GET[$this->get_id]) && !empty($arValues[$this->get_id])) {
+			$url = $_SERVER['REQUEST_URI'];
+			if (strpos($url, '?')) {
+				$url .= '&';
+			} else {
+				$url .= '?';
+			}
+			$url .= $this->get_id.'='.$arValues[$this->get_id];
+			$url .= '&TAB_CONTROL_devform_active_tab='.$_POST['TAB_CONTROL_devform_active_tab'];
+			LocalRedirect($url);
+			exit;
+		} else {
+			LocalRedirect($_SERVER['REQUEST_URI']);
+			exit;
 		}
 	}
 
-	function getContextMenu()
+	public function getContextMenu()
 	{
-		$arResult = array();
+		$arResult = [];
 
-		if(isset($_GET['back_url'])) {
-			$arResult['back'] = array(
+		if (isset($_GET['back_url'])) {
+			$arResult['back'] = [
 				'TEXT' => GetMessage('VDF_BACK_LIST'),
 				'TITLE' => GetMessage('VDF_BACK_LIST_TITLE'),
 				'LINK' => $_GET['back_url'],
 				'ICON' => 'btn_list',
-			);
+			];
 		}
-		if(isset($_GET[$this->get_id]) && $_GET[$this->get_id] > 0) {
+		if (isset($_GET[$this->get_id]) && $_GET[$this->get_id] > 0) {
 			$get = $_GET;
 			unset($get[$this->get_id]);
-			$arResult['add'] = array(
+			$arResult['add'] = [
 				'TEXT' => GetMessage('VDF_ADD'),
 				'TITLE' => GetMessage('VDF_ADD_TITLE'),
 				'LINK' => $_SERVER['SCRIPT_NAME'].'?'.http_build_query($get),
 				'ICON' => 'btn_new',
-			);
-			if(isset($_GET['back_url'])) {
-				$get = array(
+			];
+			if (isset($_GET['back_url'])) {
+				$get = [
 					'ID' => $_GET[$this->get_id],
 					'action' => 'delete',
 					'sessid' => bitrix_sessid(),
-				);
+				];
 				$url = $_GET['back_url'];
 				$url .= (strpos($url, '?') ? '&' : '?').http_build_query($get);
-				$arResult['delete'] = array(
+				$arResult['delete'] = [
 					'TEXT' => GetMessage('VDF_LIST_DELETE'),
 					'TITLE' => GetMessage('VDF_LIST_DELETE_TITLE'),
 					'LINK' => 'javascript:if(confirm("'
 						.GetMessage('VDF_LIST_DELETE_CONFIRM2')
 						.'")) window.location="'.$url.'";',
 					'ICON' => 'btn_delete',
-				);
+				];
 			}
 		}
-		if(is_array($this->headerButtons)) {
-			foreach((array)$this->headerButtons as $id=>$button) {
-				$arResult[$id] = array(
+		if (is_array($this->headerButtons)) {
+			foreach ((array)$this->headerButtons as $id=>$button) {
+				$arResult[$id] = [
 					'HTML' => $button->render(),
-				);
+				];
 			}
 		}
 		return $arResult;
@@ -176,37 +201,38 @@ class AdminForm extends Module
 
 	public function renderErrors($errors)
 	{
-		if(!empty($errors)) {
-			if(!is_array($errors)) {
-				$errors = array($errors);
+		if (!empty($errors)) {
+			if (!is_array($errors)) {
+				$errors = [$errors];
 			}
 			$errors = '<ul style="margin:0"><li class="errortext">'
 				.implode('</li><li class="errortext">', $errors)
 				.'</li></ul>';
 			echo(str_replace(
-				array('{errors}'),
-				array($errors),
-				$this->errorTemplate));
+				['{errors}'],
+				[$errors],
+				$this->errorTemplate
+			));
 		}
 	}
 
 	public static function initRequires()
 	{
-		\CJSCore::Init(array('ajax'));
-		\CJSCore::Init(array('jquery'));
+		\CJSCore::Init(['ajax']);
+		\CJSCore::Init(['jquery']);
 		$GLOBALS['APPLICATION']->AddHeadScript('/bitrix/js/vettich.devform/script.js');
 		$GLOBALS['APPLICATION']->SetAdditionalCSS('/bitrix/css/vettich.devform/style.css');
 	}
 
 	public function getTabs()
 	{
-		$arTabs = array();
-		foreach((array)$this->tabs as $k => $tab) {
-			$arTabs[] = array(
+		$arTabs = [];
+		foreach ((array)$this->tabs as $k => $tab) {
+			$arTabs[] = [
 				'DIV' => 'DIV_'.$k,
 				'TAB' => $tab->name,
 				'TITLE' => $tab->title,
-			);
+			];
 		}
 		return $arTabs;
 	}
@@ -218,10 +244,10 @@ class AdminForm extends Module
 	public function getJsCss()
 	{
 		$result = '';
-		if(!empty($this->js)) {
+		if (!empty($this->js)) {
 			$result .= '<script>'.$this->js.'</script>';
 		}
-		if(!empty($this->css)) {
+		if (!empty($this->css)) {
 			$result .= '<style>'.$this->css.'</style>';
 		}
 		return $result;
@@ -233,11 +259,11 @@ class AdminForm extends Module
 		$tabControl = new \CAdminTabControl('TAB_CONTROL_'.$this->id, $this->getTabs(), true, true);
 		$tabControl->Begin();
 
-		foreach((array)$this->tabs as $tab) {
+		foreach ((array)$this->tabs as $tab) {
 			$tabControl->BeginNextTab();
 			$tab->render($this->datas);
 		}
-		if(!empty($this->buttons)) {
+		if (!empty($this->buttons)) {
 			$tabControl->Buttons();
 			echo _type::renderTypes($this->buttons);
 		}
@@ -260,23 +286,23 @@ class AdminForm extends Module
 
 	public function restartBufferIfAjax()
 	{
-		if($_REQUEST['ajax'] == 'Y' && $_REQUEST['ajax_formid'] == $this->id) {
+		if ($_REQUEST['ajax'] == 'Y' && $_REQUEST['ajax_formid'] == $this->id) {
 			$GLOBALS['APPLICATION']->RestartBuffer();
 		}
 	}
 
 	public static function setTitle($title)
 	{
-		if(!!$pageTitle) {
-			$GLOBALS['APPLICATION']->SetTitle($pageTitle);
+		if (!!$title) {
+			$GLOBALS['APPLICATION']->SetTitle($title);
 		}
 	}
 
 	public function renderTemplate()
 	{
 		echo str_replace(
-			array('{form-id}',        '{content}'),
-			array('FORM_'.$this->id,  $this->getContent()),
+			['{form-id}',        '{content}'],
+			['FORM_'.$this->id,  $this->getContent()],
 			$this->containerTemplate
 		);
 	}

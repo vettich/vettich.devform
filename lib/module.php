@@ -1,4 +1,4 @@
-<?
+<?php
 namespace vettich\devform;
 
 /**
@@ -10,8 +10,11 @@ class Module
 {
 	const MODULE_ID = 'vettich.devform';
 
-	public $_handlers = array();
-	public function __construct($args=array())
+	private static $messPrefix = '';
+	private static $messStack = [];
+
+	public $_handlers = [];
+	public function __construct($args=[])
 	{
 		$this->_handlers = self::getOnHandler($args);
 	}
@@ -32,11 +35,12 @@ class Module
 		unset($params['namespace']);
 		unset($params['class']);
 
-		foreach((array)(array)$namespaces as $namespace) {
+		foreach ((array)(array)$namespaces as $namespace) {
 			$cl = $clName;
-			if(!empty($namespace))
+			if (!empty($namespace)) {
 				$cl = $namespace.'\\'.$clName;
-			if(class_exists($cl)) {
+			}
+			if (class_exists($cl)) {
 				return new $cl($params);
 			}
 		}
@@ -51,13 +55,12 @@ class Module
 	*/
 	public static function mess($text)
 	{
-		global $MESS;
 		$len = strlen($text);
 		$start = -1;
-		$search = array();
-		for($i=0; $i < $len; ++$i) {
-			if($text[$i] == '#') {
-				if($start >= 0) {
+		$search = [];
+		for ($i=0; $i < $len; ++$i) {
+			if ($text[$i] == '#') {
+				if ($start >= 0) {
 					$search[] = substr($text, $start, $i - $start + 1);
 					$start = -1;
 				} else {
@@ -65,14 +68,31 @@ class Module
 				}
 			}
 		}
-		foreach((array)$search as $macros) {
+		foreach ((array)$search as $macros) {
 			$mess = substr($macros, 1, -1);
+			if ($mess[0] == '.') {
+				$mess = self::$messPrefix.substr($mess, 1);
+			}
 			$mess = GetMessage($mess);
-			if(!empty($mess)) {
+			if (!empty($mess)) {
 				$text = str_replace($macros, $mess, $text);
 			}
 		}
 		return $text;
+	}
+
+	public function pushMessPrefix($prefix)
+	{
+		self::$messStack[] = self::$messPrefix;
+		self::$messPrefix = $prefix;
+	}
+
+	public static function popMessPrefix()
+	{
+		if (empty(self::$messStack)) {
+			return;
+		}
+		self::$messPrefix = array_pop(self::$messStack);
 	}
 
 	/**
@@ -95,19 +115,19 @@ class Module
 	* @param string $string
 	* @return array
 	*/
-	public static function explode($delimiter, $string, $eq='=', $ar=array('[', ']'), &$i=0)
+	public static function explode($delimiter, $string, $eq='=', $ar=['[', ']'], &$i=0)
 	{
-		$arParam = array();
+		$arParam = [];
 		$len = strlen($string);
 		$sParam = '';
-		$aParam = array();
+		$aParam = [];
 		$sKey = '';
 		$prevChar = '';
 		for ($i=0; $i<$len; $i++) {
 			$ch = $string[$i];
-			if($ch == $delimiter) {
-				if($prevChar != '\\') {
-					if(empty($sKey)) {
+			if ($ch == $delimiter) {
+				if ($prevChar != '\\') {
+					if (empty($sKey)) {
 						$arParam[] = trim($sParam);
 					} else {
 						$arParam[trim($sKey)] = trim($sParam);
@@ -116,19 +136,19 @@ class Module
 				} else {
 					$sParam = substr($sParam, 0, -1).$ch;
 				}
-			} elseif($ch == $eq) {
-				if($prevChar != '\\') {
-					if(!empty($sParam)) {
+			} elseif ($ch == $eq) {
+				if ($prevChar != '\\') {
+					if (!empty($sParam)) {
 						$sKey = $sParam;
 						$sParam = '';
 					}
 				} else {
 					$sParam = substr($sParam, 0, -1).$ch;
 				}
-			} elseif($ch == $ar[0]) {
-				if($prevChar != '\\') {
+			} elseif ($ch == $ar[0]) {
+				if ($prevChar != '\\') {
 					$sParam = self::explode($delimiter, substr($string, $i+1), $eq, $ar, $ii);
-					if(empty($sKey)) {
+					if (empty($sKey)) {
 						$arParam[] = $sParam;
 					} else {
 						$arParam[trim($sKey)] = $sParam;
@@ -138,9 +158,9 @@ class Module
 				} else {
 					$sParam = substr($sParam, 0, -1).$ch;
 				}
-			} elseif($ch == $ar[1]) {
-				if($prevChar != '\\') {
-					if(empty($sKey)) {
+			} elseif ($ch == $ar[1]) {
+				if ($prevChar != '\\') {
+					if (empty($sKey)) {
 						$arParam[] = trim($sParam);
 					} else {
 						$arParam[trim($sKey)] = trim($sParam);
@@ -155,8 +175,8 @@ class Module
 			}
 			$prevChar = $ch;
 		}
-		if(!empty($sParam)) {
-			if(empty($sKey)) {
+		if (!empty($sParam)) {
+			if (empty($sKey)) {
 				$arParam[] = trim($sParam);
 			} else {
 				$arParam[trim($sKey)] = trim($sParam);
@@ -173,9 +193,10 @@ class Module
 	* @param array $arr - array
 	* @param boolean $rewrite - rewrite key if one exists
 	*/
-	function changeKey($key,$newKey,&$arr,$rewrite=true){
-		if($key !== $newKey
-			&& ($rewrite || !array_key_exists($newKey,$arr))) {
+	public function changeKey($key, $newKey, &$arr, $rewrite=true)
+	{
+		if ($key !== $newKey
+			&& ($rewrite || !array_key_exists($newKey, $arr))) {
 			$arr[$newKey] = $arr[$key];
 			unset($arr[$key]);
 			return true;
@@ -190,18 +211,18 @@ class Module
 	*/
 	public static function convertEncodingToCurrent($data)
 	{
-		if(is_array($data)) {
-			foreach((array)$data as $key => $value) {
+		if (is_array($data)) {
+			foreach ((array)$data as $key => $value) {
 				$newKey = \Bitrix\Main\Text\Encoding::convertEncodingToCurrent($key);
 				$newValue = self::convertEncodingToCurrent($value);
 				$data[$newKey] = $newValue;
-				if($newKey != $key) {
+				if ($newKey != $key) {
 					unset($data[$key]);
 				}
 			}
 			return $data;
-		} elseif(is_string($data)) {
-			if($data == '') {
+		} elseif (is_string($data)) {
+			if ($data == '') {
 				return '';
 			}
 			return \Bitrix\Main\Text\Encoding::convertEncodingToCurrent($data);
@@ -217,9 +238,9 @@ class Module
 	*/
 	public static function getOnHandler($args)
 	{
-		$arResult = array();
-		foreach((array)$args as $key => $arg) {
-			if(strpos($key, 'on ') === 0) {
+		$arResult = [];
+		foreach ((array)$args as $key => $arg) {
+			if (strpos($key, 'on ') === 0) {
 				$arResult[substr($key, 3)] = $arg;
 			}
 		}
@@ -235,14 +256,14 @@ class Module
 	*/
 	public static function onHandlerStatic($handlers, $name, &$arg1=null, &$arg2=null, &$arg3=null, &$arg4=null, &$arg5=null, &$arg6=null, &$arg7=null)
 	{
-		if(!isset($handlers[$name])) {
+		if (!isset($handlers[$name])) {
 			return null;
 		}
 
-		$args = array(&$arg1, &$arg2, &$arg3, &$arg4, &$arg5, &$arg6, &$arg7);
+		$args = [&$arg1, &$arg2, &$arg3, &$arg4, &$arg5, &$arg6, &$arg7];
 		$len = count($args);
-		for ($i=count($args)-1; $i >= 0; $i--) { 
-			if($args[$i] === null) {
+		for ($i=count($args)-1; $i >= 0; $i--) {
+			if ($args[$i] === null) {
 				unset($args[$i]);
 			} else {
 				break;
@@ -256,13 +277,13 @@ class Module
 	*/
 	public function onHandler($name, &$arg1=null, &$arg2=null, &$arg3=null, &$arg4=null, &$arg5=null, &$arg6=null, &$arg7=null)
 	{
-		if(empty($this->_handlers[$name])) {
+		if (empty($this->_handlers[$name])) {
 			return null;
 		}
-		$args = array(&$arg1, &$arg2, &$arg3, &$arg4, &$arg5, &$arg6, &$arg7);
+		$args = [&$arg1, &$arg2, &$arg3, &$arg4, &$arg5, &$arg6, &$arg7];
 		$len = count($args);
 		for ($i=count($args)-1; $i >= 0; $i--) {
-			if($args[$i] === null) {
+			if ($args[$i] === null) {
 				unset($args[$i]);
 			} else {
 				break;
@@ -273,10 +294,10 @@ class Module
 
 	public static function valueFrom($arr, $key, $default=null)
 	{
-		if(($pos = strpos($key, '[')) !== false) {
+		if (($pos = strpos($key, '[')) !== false) {
 			$_key = substr($key, 0, $pos);
 			$_postkey = substr($key, $pos);
-			$_postkey = str_replace(array('[', ']'), array('["', '"]'), $_postkey);
+			$_postkey = str_replace(['[', ']'], ['["', '"]'], $_postkey);
 			eval('$ret = isset($arr["'.$_key.'"]'.$_postkey.') ? $arr["'.$_key.'"]'.$_postkey.' : $default;');
 			return $ret;
 		} else {
@@ -286,14 +307,56 @@ class Module
 
 	public static function valueTo(&$arr, $key, $value)
 	{
-		if(($pos = strpos($key, '[')) !== false) {
+		if (($pos = strpos($key, '[')) !== false) {
 			$prekey = substr($key, 0, $pos);
 			$postkey = substr($key, $pos);
-			$postkey = str_replace(array('[', ']'), array('["', '"]'), $postkey);
+			$postkey = str_replace(['[', ']'], ['["', '"]'], $postkey);
 			eval('$arr["'.$prekey.'"]'.$postkey.' = $value;');
 		} else {
 			$arr[$key] = $value;
 		}
+	}
+
+	public static function strToChain($str)
+	{
+		$chain = str_replace(['][', ']', '['], ['|', '', '|'], $str);
+		$chain = explode('|', $chain);
+		return $chain;
+	}
+
+	public static function arrayChain($arr, $columns)
+	{
+		if (empty($columns)) {
+			return $arr;
+		}
+		if (!is_array($arr)) {
+			return null;
+		}
+		if (array_key_exists($columns[0], $arr)) {
+			$key = array_shift($columns);
+			return self::arrayChain($arr[$key], $columns);
+		}
+		return null;
+	}
+
+	public static function arrayChainSet(&$arr, $columns, $value)
+	{
+		if (empty($columns)) {
+			return null;
+		}
+		if (!is_array($arr)) {
+			$arr = [];
+		}
+		$key = array_shift($columns);
+		if (!array_key_exists($key, $arr)) {
+			$arr[$key] = '';
+		}
+		$res = self::arrayChainSet($arr[$key], $columns, $value);
+		if ($res == null) {
+			$arr[$key] = $value;
+			return true;
+		}
+		return null;
 	}
 
 	public static function getCurlFilename($fn)
@@ -307,17 +370,16 @@ class Module
 	public static function curlPost($url, $data, $on=null)
 	{
 		$result = false;
-		if(function_exists('curl_init') && $curl = curl_init())
-		{
+		if (function_exists('curl_init') && $curl = curl_init()) {
 			curl_setopt($curl, CURLOPT_URL, $url);
-			curl_setopt($curl, CURLOPT_RETURNTRANSFER,true);
+			curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 			curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
 			curl_setopt($curl, CURLOPT_POST, true);
 			curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
 			curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
 			curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
-			if(is_callable($on)) {
-				call_user_func_array($on, array(&$curl, $url, $data));
+			if (is_callable($on)) {
+				call_user_func_array($on, [&$curl, $url, $data]);
 			}
 			$result = curl_exec($curl);
 			curl_close($curl);
@@ -328,15 +390,14 @@ class Module
 	public static function curlGet($url, $on=null)
 	{
 		$result = false;
-		if(function_exists('curl_init') && $curl = curl_init())
-		{
+		if (function_exists('curl_init') && $curl = curl_init()) {
 			curl_setopt($curl, CURLOPT_URL, $url);
-			curl_setopt($curl, CURLOPT_RETURNTRANSFER,true);
+			curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 			curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
 			curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
 			curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
-			if(is_callable($on)) {
-				call_user_func_array($on, array(&$curl, $url));
+			if (is_callable($on)) {
+				call_user_func_array($on, [&$curl, $url]);
 			}
 			$result = curl_exec($curl);
 			curl_close($curl);
@@ -357,45 +418,45 @@ class Module
 	public static function substr($str, $start, $length=false, $encoding='UTF-8', $wordwrap=true, $postfix='...')
 	{
 		$orig_len = self::mb_strlen($str);
-		if($orig_len <= $length) {
+		if ($orig_len <= $length) {
 			return $str;
 		}
 		$postfix_len = self::mb_strlen($postfix);
-		if($length===false) {
+		if ($length===false) {
 			$length = $orig_len;
 		}
-		if($postfix && $length>$postfix_len) {
+		if ($postfix && $length>$postfix_len) {
 			$length -= $postfix_len;
 		}
 		$res = self::mb_substr($str, $start, $length, $encoding);
-		if($wordwrap) {
+		if ($wordwrap) {
 			$res = self::mb_substr($res, 0, self::mb_strripos($res, ' ', 0, $encoding), $encoding);
 		}
-		if($postfix && $length>$postfix_len && self::mb_strlen($res) < $orig_len) {
+		if ($postfix && $length>$postfix_len && self::mb_strlen($res) < $orig_len) {
 			$res .= $postfix;
 		}
 		return $res;
 	}
 
-	public static function mb_substr($str, $start, $len=NULL, $encoding=NULL)
+	public static function mb_substr($str, $start, $len=null, $encoding=null)
 	{
-		if(function_exists('mb_substr')) {
+		if (function_exists('mb_substr')) {
 			return mb_substr($str, $start, $len, $encoding ?: 'UTF-8');
 		}
 		return substr($str, $start, $len);
 	}
 
-	public static function mb_strripos($haystack, $needle, $offset=0, $encoding=NULL)
+	public static function mb_strripos($haystack, $needle, $offset=0, $encoding=null)
 	{
-		if(function_exists('mb_strripos')) {
+		if (function_exists('mb_strripos')) {
 			return mb_strripos($haystack, $needle, $offset, $encoding ?: 'UTF-8');
 		}
 		return strripos($haystack, $needle, $offset);
 	}
 
-	public static function mb_strlen($str, $encoding=NULL)
+	public static function mb_strlen($str, $encoding=null)
 	{
-		if(function_exists('mb_strlen')) {
+		if (function_exists('mb_strlen')) {
 			return mb_strlen($str, $encoding ?: 'UTF-8');
 		}
 		return strlen($str);

@@ -1,4 +1,4 @@
-<?
+<?php
 namespace vettich\devform\types;
 
 use vettich\devform\data\_data;
@@ -15,18 +15,25 @@ class checkbox extends _type
 	public $label = '';
 	public $multiple = false;
 	public $options = null;
+	public $keys = ['true' => 'Y', 'false' => 'N'];
 
-	public function __construct($id, $args=array())
+	public function __construct($id, $args=[])
 	{
-		if(isset($args['label'])) {
+		if (isset($args['label'])) {
 			$this->label = $args['label'];
 		}
-		if(isset($args['options'])) {
+		if (isset($args['keys'])) {
+			$this->keys = $args['keys'];
+		}
+		if (isset($args['native']) && $args['native'] == true) {
+			$this->keys = ['true' => true, 'false' => false];
+		}
+		if (isset($args['options'])) {
 			$this->options = $args['options'];
 		}
-		if(isset($args['multiple'])) {
+		if (isset($args['multiple'])) {
 			$this->multiple = $args['multiple'];
-			if($args['multiple'] === true) {
+			if ($args['multiple'] === true) {
 				$this->content = $this->content_multiple;
 			}
 		}
@@ -35,8 +42,8 @@ class checkbox extends _type
 
 	public function getValue($data=null)
 	{
-		if(!$this->value) {
-			if(is_object($data)) {
+		if (!$this->value) {
+			if (is_object($data)) {
 				$this->value = $data->getValue($this->name);
 			} else {
 				$this->value = _data::getValue($data, $this->name);
@@ -45,18 +52,18 @@ class checkbox extends _type
 		return $this->value;
 	}
 
-	public function renderTemplate($template='', $replaces=array())
+	public function renderTemplate($template='', $replaces=[])
 	{
-		if(isset($replaces['{value}'])) {
+		if (isset($replaces['{value}'])) {
 			$value = $replaces['{value}'];
 		} else {
 			$value = $this->getValue($this->data);
 		}
-		if(empty($value)) {
+		if (empty($value)) {
 			$value = $this->default_value;
 		}
-		if(!$this->multiple) {
-			if($value == 'Y') {
+		if (!$this->multiple) {
+			if ($value == 'Y') {
 				$this->params['checked'] = 'checked';
 			} else {
 				unset($this->params['checked']);
@@ -64,20 +71,20 @@ class checkbox extends _type
 			unset($this->params['class']);
 			$replaces['{label}'] = $this->label;
 		} else {
-			if(!is_array($value)) {
+			if (!is_array($value)) {
 				$value = unserialize($value);
-				if(!is_array($value)) {
-					$value = array();
+				if (!is_array($value)) {
+					$value = [];
 				}
 			}
 			$html_options = '';
 			foreach ($this->options as $key => $opt) {
-				$repls = array(
+				$repls = [
 					'{checked}' => in_array($key, $value) ? 'checked' : '',
 					'{label}' => self::mess($opt),
 					'{value}' => $key,
 					'{params}' => $this->renderParams(),
-				);
+				];
 				$html_options .= str_replace(
 					array_keys($repls),
 					array_values($repls),
@@ -93,17 +100,17 @@ class checkbox extends _type
 
 	public function renderView($value='')
 	{
-		if(!$this->multiple) {
-			if($value == 'Y') {
+		if (!$this->multiple) {
+			if ($value == 'Y') {
 				$value = GetMessage('YES');
 			} else {
 				$value = GetMessage('NO');
 			}
 		} else {
-			if(!is_array($value)) {
+			if (!is_array($value)) {
 				$value = unserialize($value);
 			}
-			$result = array();
+			$result = [];
 			foreach ($value as $key) {
 				$result[] = $this->options[$key];
 			}
@@ -114,19 +121,19 @@ class checkbox extends _type
 
 	public function getValueFromPost()
 	{
-		if(!$this->multiple) {
+		if (!$this->multiple) {
 			$val = self::post($this->name);
-			if($val == null) {
+			if ($val == null) {
 				return null;
 			}
-			if($val != 'Y') {
-				return 'N';
+			if ($val != 'Y') {
+				return $this->keys['false'];
 			}
-			return 'Y';
+			return $this->keys['true'];
 		}
-		$result = array();
-		$post = self::post($this->name) ?: array();
-		foreach($post as $key => $value) {
+		$result = [];
+		$post = self::post($this->name) ?: [];
+		foreach ($post as $key => $value) {
 			$result[] = $key;
 		}
 		return $result;
