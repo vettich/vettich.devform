@@ -101,7 +101,6 @@ class AdminForm extends Module
 			return;
 		}
 		$isDontSave = (isset($args['dont_save']) && $args['dont_save'] == true);
-		\vettich\sp3\Module::log([$isDontSave , empty($_POST) , empty($this->datas)]);
 		if ($isDontSave or empty($_POST) or empty($this->datas)) {
 			return;
 		}
