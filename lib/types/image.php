@@ -55,7 +55,7 @@ class image extends _type
 					"name" => $inputName,
 					"description" => false,
 					"upload" => true,
-					"allowUpload" => "A",
+					"allowUpload" => "I",
 					"medialib" => false,
 					"fileDialog" => false,
 					"cloud" => false,
