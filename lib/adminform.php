@@ -29,7 +29,8 @@ class AdminForm extends Module
 	public $buttons = null;
 	public $headerButtons = null;
 	public $datas = null;
-	public $get_id = 'ID';
+	public $idKey = 'ID';
+	public $getID = 'ID';
 	public $containerTemplate = '<div class="js-vform" style="display:none">
 			<form method="post" action="" id="{form-id}" enctype="multipart/form-data">
 				{content}
@@ -45,6 +46,12 @@ class AdminForm extends Module
 	{
 		parent::__construct($args);
 		$this->id = $id;
+		if (isset($args['idKey'])) {
+			$this->idKey = $args['idKey'];
+		}
+		if (isset($args['getID'])) {
+			$this->getID = $args['getID'];
+		}
 		if (isset($args['js'])) {
 			$this->js = $args['js'];
 		}
@@ -132,14 +139,14 @@ class AdminForm extends Module
 		if ((isset($_POST['save']) or isset($_POST['_save'])) && !empty($_GET['back_url'])) {
 			LocalRedirect($_GET['back_url']);
 			exit;
-		} elseif (empty($_GET[$this->get_id]) && !empty($arValues[$this->get_id])) {
+		} elseif (empty($_GET[$this->getID]) && !empty($arValues[$this->idKey])) {
 			$url = $_SERVER['REQUEST_URI'];
 			if (strpos($url, '?')) {
 				$url .= '&';
 			} else {
 				$url .= '?';
 			}
-			$url .= $this->get_id.'='.$arValues[$this->get_id];
+			$url .= $this->getID.'='.$arValues[$this->idKey];
 			$url .= '&TAB_CONTROL_devform_active_tab='.$_POST['TAB_CONTROL_devform_active_tab'];
 			LocalRedirect($url);
 			exit;
@@ -161,9 +168,9 @@ class AdminForm extends Module
 				'ICON' => 'btn_list',
 			];
 		}
-		if (isset($_GET[$this->get_id]) && $_GET[$this->get_id] > 0) {
+		if (isset($_GET[$this->getID]) && $_GET[$this->getID] > 0) {
 			$get = $_GET;
-			unset($get[$this->get_id]);
+			unset($get[$this->getID]);
 			$arResult['add'] = [
 				'TEXT' => GetMessage('VDF_ADD'),
 				'TITLE' => GetMessage('VDF_ADD_TITLE'),
@@ -172,7 +179,7 @@ class AdminForm extends Module
 			];
 			if (isset($_GET['back_url'])) {
 				$get = [
-					'ID' => $_GET[$this->get_id],
+					$this->getID => $_GET[$this->getID],
 					'action' => 'delete',
 					'sessid' => bitrix_sessid(),
 				];
