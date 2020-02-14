@@ -41,6 +41,7 @@ class AdminList extends Module
 	protected $editLink = '';
 	protected $hideFilters = false;
 	protected $idKey = 'ID';
+	protected $actions = ['edit', 'delete'];
 
 	/**
 	 * @param string $pageTitle
@@ -89,6 +90,9 @@ class AdminList extends Module
 		}
 		if (isset($args['editLinkParams'])) {
 			$this->editLinkParams = $args['editLinkParams'];
+		}
+		if (isset($args['actions'])) {
+			$this->actions = $args['actions'];
 		}
 
 		$this->list = new CAdminList($this->sTableID, $this->sort);
@@ -286,21 +290,31 @@ class AdminList extends Module
 
 	public function getActions($row)
 	{
-		$arActions = [
-			'edit' => [
-				'ICON' => 'edit',
-				'DEFAULT' => true,
-				'TEXT' => GetMessage('VDF_LIST_EDIT'),
-				'ACTION' => $this->list->ActionRedirect($this->getLinkEdit([$this->idKey => $row->arRes[$this->idKey]])),
-			],
-			'delete' => [
-				'ICON' => 'delete',
-				'TEXT' => GetMessage('VDF_LIST_DELETE'),
-				'ACTION' => 'if(confirm("'
-					.(GetMessage('VDF_LIST_DELETE_CONFIRM', ['#NAME#' => $row->arRes['NAME']])).'")) '
-					.$this->list->ActionDoGroup($row->arRes[$this->idKey], 'delete'),
-			],
-		];
+		$arActions = [];
+		foreach ($this->actions as $act) {
+			if ($act == 'edit') {
+				$arActions['edit'] = [
+					'ICON' => 'edit',
+					'DEFAULT' => true,
+					'TEXT' => GetMessage('VDF_LIST_EDIT'),
+					'ACTION' => $this->list->ActionRedirect($this->getLinkEdit([$this->idKey => $row->arRes[$this->idKey]])),
+				];
+			} elseif ($act == 'copy') {
+				$arActions['copy'] = [
+					'ICON' => 'copy',
+					'TEXT' => GetMessage('VDF_LIST_COPY'),
+					'ACTION' => $this->list->ActionRedirect($this->getLinkEdit(['FROM_'.$this->idKey => $row->arRes[$this->idKey]])),
+				];
+			} elseif ($act == 'delete') {
+				$arActions['delete'] = [
+					'ICON' => 'delete',
+					'TEXT' => GetMessage('VDF_LIST_DELETE'),
+					'ACTION' => 'if(confirm("'
+						.(GetMessage('VDF_LIST_DELETE_CONFIRM', ['#NAME#' => $row->arRes['NAME']])).'")) '
+						.$this->list->ActionDoGroup($row->arRes[$this->idKey], 'delete'),
+				];
+			}
+		}
 		$arActionsBuild = $this->onHandler('actionsBuild', $this, $row, $arActions);
 		if ($arActionsBuild != null) {
 			$arActions = $arActionsBuild;
@@ -391,29 +405,31 @@ class AdminList extends Module
 			$this->onHandler('renderRow', $this, $row);
 			foreach ((array)$select as $fieldId) {
 				$param = $this->params[$fieldId];
-				if ($param) {
-					if (in_array($param->id, $this->linkEditInsert)) {
-						$param->href = $this->getLinkEdit([$this->idKey => $arRes[$this->idKey]]);
-					}
-					$view = $param->renderView(self::arrayChain($arRes, self::strToChain($param->id)), $arRes);
-					$row->AddViewField($param->id, $view);
-
-					if (!$this->dontEditAll && !in_array($param->id, $this->dontEdit)) {
-						if (($pos = strpos($param->id, '[')) !== false) {
-							$prekey = substr($param->id, 0, $pos);
-							$postkey = substr($param->id, $pos);
-							$name = "FIELDS[{$arRes[$this->idKey]}][$prekey]$postkey";
-						} else {
-							$name = "FIELDS[{$arRes[$this->idKey]}][{$param->id}]";
-						}
-						$edit = $param->renderTemplate('{content}', [
-							'{id}' => 'FIELDS-'.$arRes[$this->idKey].'-'.str_replace(['][', ']', '['], ['-', '', '-'], $param->id),
-							'{value}' => self::arrayChain($arRes, self::strToChain($param->id)),
-							'{name}' => $name,
-						]);
-						$row->AddEditField($param->id, $edit);
-					}
+				if (!$param) {
+					continue;
 				}
+				if (in_array($param->id, $this->linkEditInsert)) {
+					$param->href = $this->getLinkEdit([$this->idKey => $arRes[$this->idKey]]);
+				}
+				$view = $param->renderView(self::arrayChain($arRes, self::strToChain($param->id)), $arRes);
+				$row->AddViewField($param->id, $view);
+
+				if ($this->dontEditAll || in_array($param->id, $this->dontEdit)) {
+					continue;
+				}
+				if (($pos = strpos($param->id, '[')) !== false) {
+					$prekey = substr($param->id, 0, $pos);
+					$postkey = substr($param->id, $pos);
+					$name = "FIELDS[{$arRes[$this->idKey]}][$prekey]$postkey";
+				} else {
+					$name = "FIELDS[{$arRes[$this->idKey]}][{$param->id}]";
+				}
+				$edit = $param->renderTemplate('{content}', [
+					'{id}' => 'FIELDS-'.$arRes[$this->idKey].'-'.str_replace(['][', ']', '['], ['-', '', '-'], $param->id),
+					'{value}' => self::arrayChain($arRes, self::strToChain($param->id)),
+					'{name}' => $name,
+				]);
+				$row->AddEditField($param->id, $edit);
 			}
 			$arActions = $this->getActions($row);
 			$row->AddActions($arActions);
