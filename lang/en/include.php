@@ -1,4 +1,4 @@
-<?
+<?php
 
 $MESS['VDF_NAME'] = 'Name';
 $MESS['VDF_TEXT'] = 'Text';
@@ -13,6 +13,7 @@ $MESS['VDF_BACK_LIST'] = 'Back';
 $MESS['VDF_BACK_LIST_TITLE'] = 'Back to list';
 
 $MESS['VDF_LIST_EDIT'] = 'Edit';
+$MESS['VDF_LIST_COPY'] = 'Copy';
 $MESS['VDF_LIST_DELETE'] = 'Delete';
 $MESS['VDF_LIST_DELETE_TITLE'] = 'Delete record';
 $MESS['VDF_LIST_DELETE_CONFIRM'] = 'Do you really want to remove the #NAME# element?';
