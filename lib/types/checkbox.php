@@ -59,7 +59,7 @@ class checkbox extends _type
 		} else {
 			$value = $this->getValue($this->data);
 		}
-		if (empty($value)) {
+		if (empty($value) && $value !== $this->keys['false']) {
 			$value = $this->default_value;
 		}
 		if (!$this->multiple) {
